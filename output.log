@@ -1,0 +1,25 @@
+[36mââ[39m [36mR CMD INSTALL[39m [36mâââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ[39m
+  
+[38;5;247mâ[39m[38;5;247m  [39m[38;5;247minstalling *source* package 'rED2' ...[39m[36m[36m (359ms)[36m[39m
+
+  
+   ** using staged installation
+
+  
+   ** libs
+
+  
+   /mingw64/bin/mpif90   -I"ED/src/include" -I"C:\rtools43/mingw64/include" -ffree-line-length-none  -fno-whole-file   -O2 -gdwarf-2 -fpic  -g -O0 -c  edmain2.f90 -o test.dll && /mingw64/bin/mpif90   -I"ED/src/include" -I"C:\rtools43/mingw64/include" -ffree-line-length-none  -fno-whole-file   -O2 -gdwarf-2 -fpic  -g -O0 -c  edmain2.f90 -o edmain2.o
+
+  
+   /mingw64/bin/mpicc  -I"C:/PROGRA~1/R/R-43~1.1/include" -DNDEBUG     -I"C:/rtools43/x86_64-w64-mingw32.static.posix/include"  -I"ED/src/include" -I"C:\rtools43/usr/include"   -O2 -Wall -gdwarf-2 -mfpmath=sse -msse2 -mstackrealign  -UNDEBUG -Wall -pedantic -g -O0 -c ED/src/utils/utils_c.c -o ED/src/utils/utils_c.o
+
+  
+   make: *** [C:/PROGRA~1/R/R-43~1.1/etc/x64/Makeconf:265: ED/src/utils/utils_c.o] Error 127
+
+  
+   ERROR: compilation failed for package 'rED2'
+
+  
+[38;5;247mâ[39m[38;5;247m  [39m[38;5;247mremoving 'C:/Users/caioh/AppData/Local/Temp/RtmpyskVtf/devtools_install_58b421d57cd1/rED2'[39m[36m[39m
+
