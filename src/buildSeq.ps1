@@ -5,7 +5,7 @@ $calls = @{}
 $uses = @{}
 $dependencies = @{}
 
-gci -path src\ED\src *.f90 -re | % {
+gci -path ED\src *.f90 -re | % {
     $f = $_.Name;
     $file_paths[$f] = $_ | Resolve-Path -Relative | % {$_ -replace '.\\src\\ED', 'ED'}
 }
@@ -19,7 +19,7 @@ $file_paths.Keys | % {
 }
 
 
-gci -path src\ED\src *.f90 -re | % {
+gci -path ED\src *.f90 -re | % {
     $f = $_.Name;
     $contents = gc $_
     
@@ -81,3 +81,11 @@ $file_paths.Keys | % {
 }
 $deps2 = @{}
 $deps_complete.Keys | % {($file_paths[$_] -replace 'f90', 'o') + ': ' + (($deps_complete[$_] | % {$_ -replace 'F90', 'o'}) -join ' ')} > deps.out
+
+
+$all = $unique_dependencies.Keys | % {
+    $k = $_;
+    $deps = $unique_dependencies[$k] | % {$_ -replace '\..*', ''};
+    $key_target = $k -replace '\..*', '';
+    echo "add_multiple_dependencies(${key_target}, $($deps -join ' '))"
+}
