@@ -1,3 +1,6 @@
 [submodule "src/hdf5"]
 	path = src/hdf5
 	url = https://github.com/HDFGroup/hdf5
+[submodule "ED2"]
+	path = src/ED2
+	url = https://github.com/EDmodel/ED2.git
