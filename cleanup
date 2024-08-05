@@ -1,3 +1,4 @@
+#/bin/bash
 rm -f src/*.o
 rm -f src/*.mod
 rm -f src/*.dll
@@ -10,5 +11,5 @@ rm -rf inst/bin
 rm -f config.*
 rm -f configure~
 rm -f aclocal.m4
-find src -type f -name "*.mod" -exec rm -f {} \;
-find src -type f -name "*.o" -exec rm -f {} \;
+find src -type f -name "*.mod" -delete
+find src -type f -name "*.o" -delete

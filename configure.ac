@@ -3,7 +3,7 @@ AC_INIT([rED2],[m4_esyscmd_s([sed -n 's/.*ED_VERSION=\(.*\)/\1/p' src/ED2/ED/bui
 MAIN="edmain"
 os_name=`"${R_HOME}/bin/Rscript" -e "cat(Sys.info()[['sysname']])"`
 CC=`${R_HOME}/bin/R CMD config CC`
-FC=`${R_HOME}/bin/R CMD config FC`
+R_FC=`${R_HOME}/bin/R CMD config FC`
 CFLAGS=`${R_HOME}/bin/R CMD config CFLAGS`
 FCFLAGS=`${R_HOME}/bin/R CMD config FCFLAGS`
 SHLIB="rED2.so"
@@ -24,18 +24,16 @@ AS_IF([test "x$os_name" = "xWindows"],
 
     MAIN="edmain.exe"
     output_files="src/Makefile.ucrt"
-    rm -f src/Makefile.ucrt.in
-    cp src/Makefile.in src/Makefile.ucrt.in
     SHLIB="rED2.dll"
   ]
 )
 
 
-AC_PROG_FC([ifx ifort mpif90 ${FC}])
 AC_PROG_CC
 AC_PROG_RANLIB
 AC_LANG([Fortran])
-
+AC_PROG_FC([ifx ifort mpif90 ${R_FC} gfortran])
+AC_MSG_RESULT([$FC])
 PKG_PROG_PKG_CONFIG()
 
 PKG_CHECK_MODULES([hdf5_fortran], [hdf5_fortran], [have_hdf5=yes], [have_hdf5=no])
@@ -55,9 +53,10 @@ AS_IF([test "x$FC" = "xmpif90"],
       [
         FCFLAGS="${FCFLAGS} ${MPI_CFLAGS}  -DRAMS_MPI -fallow-invalid-boz -fallow-argument-mismatch"
         LIBS="${LIBS} ${MPI_LIBS}"
+        AC_PROG_FC([mpiifort ifx ifort mpifort mpif90 ${R_FC}])
       ],
       [
-        AC_PROG_FC([gfortran])
+        AC_PROG_FC([ifx ifort])
       ]
     )
   ]
@@ -119,5 +118,5 @@ AC_SUBST([MAIN])
 AC_SUBST([LIBS])
 AC_SUBST([FCFLAGS])
 AC_SUBST([CFLAGS])
-AC_CONFIG_FILES([${output_files}])
+AC_CONFIG_FILES([${output_files}:src/Makefile.in])
 AC_OUTPUT

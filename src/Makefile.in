@@ -3,6 +3,9 @@ include sources.mk
 
 SRC_MAIN = ED2/ED/src/driver/edmain.F90
 
+FC=@FC@
+CC=@CC@
+
 # Define the main program and static library variables
 MAIN = @MAIN@
 STATICLIB = libed2.a

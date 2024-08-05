@@ -1,0 +1,4 @@
+cleanup text eol=lf
+configure text eol=lf
+configure.ac text eol=lf
+Makefile text eol=lf
