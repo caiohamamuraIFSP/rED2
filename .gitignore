@@ -1,2 +1,12 @@
 .vscode
 build
+autom4te.cache
+*.mod
+*.o
+*.exe
+*.a
+config.log
+config.status
+inst/bin
+Makefile.ucrt
+Makefile.ucrt.in

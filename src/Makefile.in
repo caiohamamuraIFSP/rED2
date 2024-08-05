@@ -1,0 +1,57 @@
+# Include the objects.mk file first to define $(SRC_MAIN) and $(OBJ_MODEL)
+include sources.mk
+
+SRC_MAIN = ED2/ED/src/driver/edmain.F90
+
+# Define the main program and static library variables
+MAIN = @MAIN@
+STATICLIB = libed2.a
+
+# Executables
+MD = mkdir -p
+CP = cp
+
+# Compiler and linker flags
+CFLAGS = @CFLAGS@
+FCFLAGS = @FCFLAGS@
+LDFLAGS = @LIBS@
+
+# Define source files for the main program
+OBJ_MAIN = $(SRC_MAIN:.F90=.o)
+
+# Replace source files extension with object extension
+OBJECTS_1 = $(SOURCES:.F90=.o)
+OBJECTS_2 = $(OBJECTS_1:.f90=.o)
+OBJECTS = $(OBJECTS_2:.c=.o)
+
+INSTALLDIR = ../inst
+
+# Additional Fortran clean files
+CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(INSTALLDIR)/bin/$(MAIN)
+
+all: $(MAIN)
+
+# Include the dependency makefile
+include dependency.mk
+
+$(MAIN): $(OBJ_MAIN) $(STATICLIB)
+	$(FC) -o $@ $^ $(LDFLAGS); \
+  $(MD) $(INSTALLDIR)/bin; \
+  $(CP) $(MAIN) $(INSTALLDIR)/bin/;
+
+$(STATICLIB): $(OBJECTS)
+	$(AR) $(ARFLAGS) $@ $^
+
+%.o: %.F90
+	$(FC) -c $(FCFLAGS) -o $@ $<
+
+%.o: %.f90
+	$(FC) -c $(FCFLAGS) -o $@ $<
+
+%.o: %.c
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+clean:
+	$(RM) $(CLEANFILES)
+
+.PHONY: all clean
