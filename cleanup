@@ -10,3 +10,5 @@ rm -rf inst/bin
 rm -f config.*
 rm -f configure~
 rm -f aclocal.m4
+find src -type f -name "*.mod" -exec rm -f {} \;
+find src -type f -name "*.o" -exec rm -f {} \;
