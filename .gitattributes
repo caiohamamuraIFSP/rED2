@@ -1,4 +1,8 @@
 cleanup text eol=lf
 configure text eol=lf
+configure.ucrt text eol=lf
 configure.ac text eol=lf
 Makefile text eol=lf
+*.sh text eol=lf
+src/*.mk text eol=lf
+src/Makefile.in text eol=lf
