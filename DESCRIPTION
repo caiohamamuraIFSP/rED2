@@ -1,9 +1,10 @@
 Package: rED2
 Title: Ecosystem Demography Model R Package
-Version: 0.0.0.10
-Authors@R: 
+Version: 0.1.0
+Authors@R: c(
     person("Caio", "Hamamura", , "caiohamamura@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0001-6149-5885"))
+           comment = c(ORCID = "0000-0001-6149-5885")),
+    person("Carlos Alberto", "Silva", email = "carlos_engflorestal@outlook.com", role = c("aut","cph")))
 Description: R package for compiling and running Ecosystem Demography Model <https://github.com/EDmodel/ED2>.
 License: MIT + file LICENSE
 Encoding: UTF-8
