@@ -5,7 +5,7 @@ ED2/ED/src/driver/ed_driver.o: canopy_radiation_coms.mod consts_coms.mod detaile
 ed_met_driver.mod: ED2/ED/src/driver/ed_met_driver.o
 ED2/ED/src/driver/ed_met_driver.o: canopy_air_coms.mod canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_node_coms.mod ed_state_vars.mod grid_coms.mod hdf5_utils.mod lapse.mod met_driver_coms.mod pft_coms.mod radiate_utils.mod random_utils.mod therm_lib.mod update_derived_utils.mod
 ed_model.mod: ED2/ED/src/driver/ed_model.o
-ED2/ED/src/driver/ed_model.o: average_utils.mod budget_utils.mod consts_coms.mod ed_init.mod ed_met_driver.mod ed_misc_coms.mod ed_node_coms.mod ed_state_vars.mod ed_type_init.mod edio.mod euler_driver.mod grid_coms.mod heun_driver.mod hybrid_driver.mod lsm_hyd.mod mem_polygons.mod radiate_driver.mod rk4_coms.mod rk4_driver.mod rk4_integ_utils.mod soil_respiration.mod stable_cohorts.mod update_derived_utils.mod vegetation_dynamics.mod
+ED2/ED/src/driver/ed_model.o: average_utils.mod budget_utils.mod consts_coms.mod ed_init.mod ed_met_driver.mod ed_misc_coms.mod ed_node_coms.mod ed_state_vars.mod ed_type_init.mod edio.mod euler_driver.mod grid_coms.mod heun_driver.mod hybrid_driver.mod lsm_hyd.mod mem_polygons.mod radiate_driver.mod rk4_coms.mod rk4_driver.mod rk4_integ_utils.mod stable_cohorts.mod update_derived_utils.mod vegetation_dynamics.mod
 bdf2_solver.mod: ED2/ED/src/dynamics/bdf2_solver.o
 ED2/ED/src/dynamics/bdf2_solver.o: consts_coms.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod rk4_coms.mod soil_coms.mod therm_lib8.mod
 canopy_struct_dynamics.mod: ED2/ED/src/dynamics/canopy_struct_dynamics.o
@@ -13,13 +13,13 @@ ED2/ED/src/dynamics/canopy_struct_dynamics.o: allometry.mod canopy_air_coms.mod 
 disturbance.mod: ED2/ED/src/dynamics/disturbance.o
 ED2/ED/src/dynamics/disturbance.o: allometry.mod consts_coms.mod detailed_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod ed_type_init.mod forestry.mod fuse_fiss_utils.mod fusion_fission_coms.mod grid_coms.mod mem_polygons.mod met_driver_coms.mod mortality.mod pft_coms.mod phenology_aux.mod plant_hydro.mod stable_cohorts.mod therm_lib.mod update_derived_utils.mod
 euler_driver.mod: ED2/ED/src/dynamics/euler_driver.o
-ED2/ED/src/dynamics/euler_driver.o: budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod stem_resp_driv.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
+ED2/ED/src/dynamics/euler_driver.o: budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
 events.mod: ED2/ED/src/dynamics/events.o
 ED2/ED/src/dynamics/events.o: allometry.mod consts_coms.mod disturbance.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod ed_type_init.mod fuse_fiss_utils.mod grid_coms.mod met_driver_coms.mod pft_coms.mod plant_hydro.mod rk4_integ_utils.mod stable_cohorts.mod therm_lib.mod update_derived_utils.mod
 farq_katul.mod: ED2/ED/src/dynamics/farq_katul.o
-ED2/ED/src/dynamics/farq_katul.o: c34constants.mod consts_coms.mod ed_misc_coms.mod farq_leuning.mod pft_coms.mod physiology_coms.mod rk4_coms.mod
+ED2/ED/src/dynamics/farq_katul.o: consts_coms.mod ed_misc_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod rk4_coms.mod therm_lib.mod
 farq_leuning.mod: ED2/ED/src/dynamics/farq_leuning.o
-ED2/ED/src/dynamics/farq_leuning.o: c34constants.mod consts_coms.mod pft_coms.mod physiology_coms.mod rk4_coms.mod therm_lib8.mod
+ED2/ED/src/dynamics/farq_leuning.o: c34constants.mod consts_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod rk4_coms.mod therm_lib8.mod
 fire.mod: ED2/ED/src/dynamics/fire.o
 ED2/ED/src/dynamics/fire.o: consts_coms.mod disturb_coms.mod ed_misc_coms.mod ed_state_vars.mod grid_coms.mod pft_coms.mod soil_coms.mod
 forestry.mod: ED2/ED/src/dynamics/forestry.o
@@ -27,23 +27,23 @@ ED2/ED/src/dynamics/forestry.o: consts_coms.mod detailed_coms.mod disturb_coms.m
 growth_balive.mod: ED2/ED/src/dynamics/growth_balive.o
 ED2/ED/src/dynamics/growth_balive.o: allometry.mod budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod fuse_fiss_utils.mod met_driver_coms.mod mortality.mod pft_coms.mod physiology_coms.mod plant_hydro.mod stable_cohorts.mod update_derived_utils.mod
 heun_driver.mod: ED2/ED/src/dynamics/heun_driver.o
-ED2/ED/src/dynamics/heun_driver.o: budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod stem_resp_driv.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
+ED2/ED/src/dynamics/heun_driver.o: budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
 hybrid_driver.mod: ED2/ED/src/dynamics/hybrid_driver.o
-ED2/ED/src/dynamics/hybrid_driver.o: bdf2_solver.mod budget_utils.mod consts_coms.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod stem_resp_driv.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
+ED2/ED/src/dynamics/hybrid_driver.o: bdf2_solver.mod budget_utils.mod consts_coms.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_integ_utils.mod rk4_misc.mod soil_coms.mod soil_respiration.mod therm_lib.mod therm_lib8.mod update_derived_utils.mod
 lsm_hyd.mod: ED2/ED/src/dynamics/lsm_hyd.o
 ED2/ED/src/dynamics/lsm_hyd.o: consts_coms.mod ed_misc_coms.mod ed_node_coms.mod ed_state_vars.mod grid_coms.mod hydrology_coms.mod hydrology_constants.mod pft_coms.mod soil_coms.mod therm_lib.mod
 mortality.mod: ED2/ED/src/dynamics/mortality.o
-ED2/ED/src/dynamics/mortality.o: consts_coms.mod disturb_coms.mod ed_max_dims.mod ed_state_vars.mod pft_coms.mod physiology_coms.mod
+ED2/ED/src/dynamics/mortality.o: consts_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod pft_coms.mod
 multiple_scatter.mod: ED2/ED/src/dynamics/multiple_scatter.o
 ED2/ED/src/dynamics/multiple_scatter.o: canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod rk4_coms.mod
 old_twostream_rad.mod: ED2/ED/src/dynamics/old_twostream_rad.o
 ED2/ED/src/dynamics/old_twostream_rad.o: canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod rk4_coms.mod
 phenology_aux.mod: ED2/ED/src/dynamics/phenology_aux.o
-ED2/ED/src/dynamics/phenology_aux.o: allometry.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod plant_hydro.mod soil_coms.mod stable_cohorts.mod therm_lib.mod
+ED2/ED/src/dynamics/phenology_aux.o: allometry.mod consts_coms.mod ed_max_dims.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod plant_hydro.mod soil_coms.mod stable_cohorts.mod therm_lib.mod
 phenology_driv.mod: ED2/ED/src/dynamics/phenology_driv.o
 ED2/ED/src/dynamics/phenology_driv.o: allometry.mod budget_utils.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod pft_coms.mod phenology_aux.mod phenology_coms.mod plant_hydro.mod stable_cohorts.mod therm_lib.mod
 photosyn_driv.mod: ED2/ED/src/dynamics/photosyn_driv.o
-ED2/ED/src/dynamics/photosyn_driv.o: allometry.mod canopy_air_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod farq_katul.mod farq_leuning.mod met_driver_coms.mod pft_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod therm_lib.mod
+ED2/ED/src/dynamics/photosyn_driv.o: allometry.mod canopy_air_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod farq_katul.mod farq_leuning.mod met_driver_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod therm_lib.mod
 plant_hydro.mod: ED2/ED/src/dynamics/plant_hydro.o
 ED2/ED/src/dynamics/plant_hydro.o: allometry.mod consts_coms.mod ed_misc_coms.mod ed_state_vars.mod grid_coms.mod pft_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod
 radiate_driver.mod: ED2/ED/src/dynamics/radiate_driver.o
@@ -53,17 +53,15 @@ ED2/ED/src/dynamics/reproduction.o: allometry.mod consts_coms.mod ed_max_dims.mo
 rk4_copy_patch.mod: ED2/ED/src/dynamics/rk4_copy_patch.o
 ED2/ED/src/dynamics/rk4_copy_patch.o: allometry.mod budget_utils.mod canopy_air_coms.mod canopy_struct_dynamics.mod consts_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod phenology_coms.mod physiology_coms.mod plant_hydro.mod rk4_coms.mod rk4_misc.mod soil_coms.mod therm_lib.mod therm_lib8.mod
 rk4_derivs.mod: ED2/ED/src/dynamics/rk4_derivs.o
-ED2/ED/src/dynamics/rk4_derivs.o: budget_utils.mod canopy_struct_dynamics.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod grid_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod therm_lib8.mod
+ED2/ED/src/dynamics/rk4_derivs.o: budget_utils.mod canopy_struct_dynamics.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod grid_coms.mod pft_coms.mod physiology_coms.mod plant_hydro.mod rk4_coms.mod soil_coms.mod therm_lib8.mod
 rk4_driver.mod: ED2/ED/src/dynamics/rk4_driver.o
-ED2/ED/src/dynamics/rk4_driver.o: budget_utils.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_integ_utils.mod rk4_misc.mod soil_respiration.mod stem_resp_driv.mod therm_lib.mod update_derived_utils.mod
+ED2/ED/src/dynamics/rk4_driver.o: budget_utils.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod met_driver_coms.mod photosyn_driv.mod plant_hydro.mod rk4_coms.mod rk4_copy_patch.mod rk4_integ_utils.mod rk4_misc.mod soil_respiration.mod therm_lib.mod update_derived_utils.mod
 rk4_integ_utils.mod: ED2/ED/src/dynamics/rk4_integ_utils.o
 ED2/ED/src/dynamics/rk4_integ_utils.o: c34constants.mod canopy_air_coms.mod canopy_layer_coms.mod canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_para_coms.mod ed_state_vars.mod grid_coms.mod hydrology_coms.mod physiology_coms.mod rk4_coms.mod rk4_copy_patch.mod rk4_derivs.mod rk4_misc.mod soil_coms.mod therm_lib8.mod
 rk4_misc.mod: ED2/ED/src/dynamics/rk4_misc.o
 ED2/ED/src/dynamics/rk4_misc.o: budget_utils.mod canopy_struct_dynamics.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod grid_coms.mod pft_coms.mod physiology_coms.mod plant_hydro.mod rk4_coms.mod soil_coms.mod therm_lib.mod therm_lib8.mod
 soil_respiration.mod: ED2/ED/src/dynamics/soil_respiration.o
 ED2/ED/src/dynamics/soil_respiration.o: budget_utils.mod consts_coms.mod decomp_coms.mod ed_misc_coms.mod ed_state_vars.mod farq_leuning.mod grid_coms.mod pft_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod therm_lib.mod
-stem_resp_driv.mod: ED2/ED/src/dynamics/stem_resp_driv.o
-ED2/ED/src/dynamics/stem_resp_driv.o: consts_coms.mod ed_misc_coms.mod ed_state_vars.mod farq_leuning.mod pft_coms.mod physiology_coms.mod rk4_coms.mod
 structural_growth.mod: ED2/ED/src/dynamics/structural_growth.o
 ED2/ED/src/dynamics/structural_growth.o: allometry.mod budget_utils.mod consts_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_therm_lib.mod fuse_fiss_utils.mod pft_coms.mod physiology_coms.mod plant_hydro.mod stable_cohorts.mod update_derived_utils.mod
 twostream_rad.mod: ED2/ED/src/dynamics/twostream_rad.o
@@ -99,9 +97,9 @@ ED2/ED/src/io/ed_opspec.o: canopy_air_coms.mod canopy_layer_coms.mod canopy_radi
 ed_print.mod: ED2/ED/src/io/ed_print.o
 ED2/ED/src/io/ed_print.o: ed_max_dims.mod ed_misc_coms.mod ed_node_coms.mod ed_state_vars.mod ed_var_tables.mod
 ed_read_ed10_20_history.mod: ED2/ED/src/io/ed_read_ed10_20_history.o
-ED2/ED/src/io/ed_read_ed10_20_history.o: allometry.mod consts_coms.mod decomp_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_type_init.mod fuse_fiss_utils.mod grid_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod update_derived_utils.mod
+ED2/ED/src/io/ed_read_ed10_20_history.o: allometry.mod consts_coms.mod decomp_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_type_init.mod fuse_fiss_utils.mod grid_coms.mod pft_coms.mod physiology_coms.mod update_derived_utils.mod
 ed_read_ed21_history.mod: ED2/ED/src/io/ed_read_ed21_history.o
-ED2/ED/src/io/ed_read_ed21_history.o: allometry.mod consts_coms.mod decomp_coms.mod disturb_coms.mod ed_init.mod ed_init_history.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_type_init.mod fuse_fiss_utils.mod grid_coms.mod hdf5_coms.mod met_driver_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod soil_coms.mod update_derived_utils.mod
+ED2/ED/src/io/ed_read_ed21_history.o: allometry.mod consts_coms.mod decomp_coms.mod disturb_coms.mod ed_init.mod ed_init_history.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod ed_type_init.mod fuse_fiss_utils.mod grid_coms.mod hdf5_coms.mod met_driver_coms.mod pft_coms.mod physiology_coms.mod soil_coms.mod update_derived_utils.mod
 ed_xml_config.mod: ED2/ED/src/io/ed_xml_config.o
 ED2/ED/src/io/ed_xml_config.o: budget_utils.mod canopy_air_coms.mod canopy_radiation_coms.mod decomp_coms.mod disturb_coms.mod ed_max_dims.mod ed_misc_coms.mod fusion_fission_coms.mod grid_coms.mod hydrology_coms.mod met_driver_coms.mod pft_coms.mod phenology_coms.mod physiology_coms.mod rk4_coms.mod soil_coms.mod
 h5_output.mod: ED2/ED/src/io/h5_output.o
@@ -194,7 +192,7 @@ libxml2f90.f90_pp.mod: ED2/ED/src/utils/libxml2f90.f90_pp.o
 numutils.mod: ED2/ED/src/utils/numutils.o
 ED2/ED/src/utils/numutils.o: consts_coms.mod
 radiate_utils.mod: ED2/ED/src/utils/radiate_utils.o
-ED2/ED/src/utils/radiate_utils.o: canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod met_driver_coms.mod phenology_coms.mod update_derived_utils.mod
+ED2/ED/src/utils/radiate_utils.o: canopy_radiation_coms.mod consts_coms.mod ed_max_dims.mod ed_misc_coms.mod ed_state_vars.mod met_driver_coms.mod update_derived_utils.mod
 random_utils.mod: ED2/ED/src/utils/random_utils.o
 rsys.mod: ED2/ED/src/utils/rsys.o
 stable_cohorts.mod: ED2/ED/src/utils/stable_cohorts.o

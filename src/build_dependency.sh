@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -e
+
+cd "$(dirname "$0")"
+
 # Add your build commands here
 SOURCES=$(find ED2/ED/src -name "*.[Ff]90" -and -not -path "ED2/ED/src/preproc/*")
 
@@ -17,7 +21,7 @@ for src in $SOURCES; do
   echo $SRC_MOD_NAME: ${src%.[Ff]90}.o >> dependency.mk
 
   # Find modules used in the source file and add as dependency for the object file
-  MODS_USED=$(cd ../../.. && grep -i '^\s*use\s\+' $src | awk '{print $2}' | sed 's/,.*//' | sort | uniq)
+  MODS_USED=$(grep -i '^\s*use\s\+' "$src" | awk '{print $2}' | sed 's/,.*//' | sort | uniq)
 
   # Update MODS_USED to include only modules that has a corresponding
   # source file with the pattern ED/src/*/$mod.[Ff]90

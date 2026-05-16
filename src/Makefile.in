@@ -9,6 +9,7 @@ CC=@CC@
 # Define the main program and static library variables
 MAIN = @MAIN@
 STATICLIB = libed2.a
+PATCHSTAMP = ED2/.patched-v220-windows
 
 # Executables
 MD = mkdir -p
@@ -30,7 +31,7 @@ OBJECTS = $(OBJECTS_2:.c=.o)
 INSTALLDIR = ../inst
 
 # Additional Fortran clean files
-CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(INSTALLDIR)/bin/$(MAIN)
+CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(PATCHSTAMP) $(INSTALLDIR)/bin/$(MAIN)
 
 all: $(MAIN)
 
@@ -38,9 +39,15 @@ all: $(MAIN)
 include dependency.mk
 
 $(MAIN): $(OBJ_MAIN) $(STATICLIB)
-	$(FC) -o $@ $^ $(LDFLAGS); \
+	$(FC) $(FCFLAGS) -o $@ $^ $(LDFLAGS); \
   $(MD) $(INSTALLDIR)/bin; \
   $(CP) $(MAIN) $(INSTALLDIR)/bin/;
+
+$(PATCHSTAMP):
+	cd .. && sh tools/patch_ed2_v220_windows.sh src/ED2
+	touch $(PATCHSTAMP)
+
+$(OBJ_MAIN) $(OBJECTS): | $(PATCHSTAMP)
 
 $(STATICLIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
