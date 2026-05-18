@@ -10,8 +10,8 @@ installs the `edmain` executable inside the package.
 pak::pak("caiohamamuraIFSP/rED2")
 ```
 
-The package `configure` script prepares ED2, applies portability patches, finds
-or builds HDF5, and builds `edmain` during installation.
+The package `configure` script uses the vendored ED2 sources in `src/`, finds or
+builds HDF5, and builds `edmain` during installation.
 
 ## Build Options
 
@@ -33,7 +33,7 @@ The Base Toolkit provides `icx`; the HPC Toolkit provides the Fortran compiler
 ```powershell
 winget install --id Intel.OneAPI.BaseToolkit -e
 winget install --id Intel.OneAPI.HPCToolkit -e
-winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+winget install Microsoft.VisualStudio.BuildTools --force --override "--wait --passive --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --includeRecommended"
 ```
 
 Then install from R:

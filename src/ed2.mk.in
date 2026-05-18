@@ -12,7 +12,6 @@ AROUT=@AROUT@
 # Define the main program and static library variables
 MAIN = @MAIN@
 STATICLIB = libed2.a
-PATCHSTAMP = ED2/.patched-v220-windows
 
 # Executables
 MD = mkdir -p
@@ -51,7 +50,7 @@ export INCLUDE := $(TOOL_INCLUDE);$(INCLUDE)
 endif
 
 # Additional Fortran clean files
-CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(PATCHSTAMP) $(INSTALLDIR)/bin/$(MAIN)
+CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(INSTALLDIR)/bin/$(MAIN)
 
 all: $(MAIN)
 
@@ -68,12 +67,6 @@ $(MAIN): $(OBJ_MAIN) $(STATICLIB)
 		done; \
 	fi; \
 	true
-
-$(PATCHSTAMP):
-	cd .. && sh tools/patch_ed2_v220_windows.sh src/ED2
-	touch $(PATCHSTAMP)
-
-$(OBJ_MAIN) $(OBJECTS): | $(PATCHSTAMP)
 
 $(STATICLIB): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(AROUT)$@ $^

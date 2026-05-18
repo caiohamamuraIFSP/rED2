@@ -164,29 +164,14 @@ AS_CASE([$enable_mpi],
   [yes|no], [],
   [AC_MSG_ERROR([--enable-mpi expects yes or no])])
 
-ED2_URL="https://github.com/EDmodel/ED2/archive/refs/tags/v.2.2.0.zip"
-ED2_ZIP="src/ED2-v.2.2.0.zip"
 ED2_DIR="src/ED2"
-ED2_UNPACKED="src/ED2-v.2.2.0"
-downloaded_ed2=no
 
 AC_MSG_NOTICE([preparing ED2 v.2.2.0 sources])
 AS_IF([test ! -f "${ED2_DIR}/ED/src/driver/edmain.F90"],
-  [
-    AC_MSG_NOTICE([downloading ED2 from ${ED2_URL}])
-    rm -rf "${ED2_DIR}" "${ED2_UNPACKED}" "${ED2_ZIP}"
-    ${CURL:-curl} -L -o "${ED2_ZIP}" "${ED2_URL}" || AC_MSG_ERROR([failed to download ED2 v.2.2.0])
-    unzip -q "${ED2_ZIP}" -d src || AC_MSG_ERROR([failed to unpack ED2 v.2.2.0])
-    mv "${ED2_UNPACKED}" "${ED2_DIR}" || AC_MSG_ERROR([failed to move ED2 sources into place])
-    rm -f "${ED2_ZIP}"
-    downloaded_ed2=yes
-  ])
+  [AC_MSG_ERROR([vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}])])
 
-AC_MSG_NOTICE([applying ED2 Windows compatibility patches])
-sh tools/patch_ed2_v220_windows.sh "${ED2_DIR}" || AC_MSG_ERROR([failed to patch ED2 v.2.2.0 for Windows])
-
-AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
-(cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
+#AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
+#(cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 

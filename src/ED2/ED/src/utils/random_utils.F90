@@ -31,7 +31,7 @@ module random_utils
       !  case you create a new name, please be creative so it doesn't conflict with other  !
       !  user's choice.                                                                    !
       !------------------------------------------------------------------------------------!
-#if defined(ODYSSEY) || defined(SUNHPC) || defined(PC_INTEL) || defined(_WIN32)
+#if defined(ODYSSEY) || defined(SUNHPC) || defined(PC_INTEL) || defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
       use ifport, only : getpid
 #endif
       !------------------------------------------------------------------------------------!

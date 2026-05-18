@@ -624,15 +624,6 @@ SHLIB
 AROUT
 ARFLAGS
 AR
-HDF5_LIBS
-HDF5_CFLAGS
-MPI_LIBS
-MPI_CFLAGS
-hdf5_fortran_LIBS
-hdf5_fortran_CFLAGS
-PKG_CONFIG_LIBDIR
-PKG_CONFIG_PATH
-PKG_CONFIG
 ac_ct_FC
 FCFLAGS
 FC
@@ -697,16 +688,7 @@ LDFLAGS
 LIBS
 CPPFLAGS
 FC
-FCFLAGS
-PKG_CONFIG
-PKG_CONFIG_PATH
-PKG_CONFIG_LIBDIR
-hdf5_fortran_CFLAGS
-hdf5_fortran_LIBS
-MPI_CFLAGS
-MPI_LIBS
-HDF5_CFLAGS
-HDF5_LIBS'
+FCFLAGS'
 
 
 # Initialize some variables set by options.
@@ -1337,19 +1319,6 @@ Some influential environment variables:
               you have headers in a nonstandard directory <include dir>
   FC          Fortran compiler command
   FCFLAGS     Fortran compiler flags
-  PKG_CONFIG  path to pkg-config utility
-  PKG_CONFIG_PATH
-              directories to add to pkg-config's search path
-  PKG_CONFIG_LIBDIR
-              path overriding pkg-config's built-in search path
-  hdf5_fortran_CFLAGS
-              C compiler flags for hdf5_fortran, overriding pkg-config
-  hdf5_fortran_LIBS
-              linker flags for hdf5_fortran, overriding pkg-config
-  MPI_CFLAGS  C compiler flags for MPI, overriding pkg-config
-  MPI_LIBS    linker flags for MPI, overriding pkg-config
-  HDF5_CFLAGS C compiler flags for HDF5, overriding pkg-config
-  HDF5_LIBS   linker flags for HDF5, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -1866,7 +1835,9 @@ struct stat;
 /* Most of the following tests are stolen from RCS 5.7 src/conf.sh.  */
 struct buf { int x; };
 struct buf * (*rcsopen) (struct buf *, struct stat *, int);
-static char *e (char **p, int i)
+static char *e (p, i)
+     char **p;
+     int i;
 {
   return p[i];
 }
@@ -1917,7 +1888,6 @@ extern int puts (const char *);
 extern int printf (const char *, ...);
 extern int dprintf (int, const char *, ...);
 extern void *malloc (size_t);
-extern void free (void *);
 
 // Check varargs macros.  These examples are taken from C99 6.10.3.5.
 // dprintf is used instead of fprintf to avoid needing to declare
@@ -2486,35 +2456,17 @@ case $enable_mpi in #(
     as_fn_error $? "--enable-mpi expects yes or no" "$LINENO" 5 ;;
 esac
 
-ED2_URL="https://github.com/EDmodel/ED2/archive/refs/tags/v.2.2.0.zip"
-ED2_ZIP="src/ED2-v.2.2.0.zip"
 ED2_DIR="src/ED2"
-ED2_UNPACKED="src/ED2-v.2.2.0"
-downloaded_ed2=no
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: preparing ED2 v.2.2.0 sources" >&5
 printf "%s\n" "$as_me: preparing ED2 v.2.2.0 sources" >&6;}
 if test ! -f "${ED2_DIR}/ED/src/driver/edmain.F90"
 then :
-
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: downloading ED2 from ${ED2_URL}" >&5
-printf "%s\n" "$as_me: downloading ED2 from ${ED2_URL}" >&6;}
-    rm -rf "${ED2_DIR}" "${ED2_UNPACKED}" "${ED2_ZIP}"
-    ${CURL:-curl} -L -o "${ED2_ZIP}" "${ED2_URL}" || as_fn_error $? "failed to download ED2 v.2.2.0" "$LINENO" 5
-    unzip -q "${ED2_ZIP}" -d src || as_fn_error $? "failed to unpack ED2 v.2.2.0" "$LINENO" 5
-    mv "${ED2_UNPACKED}" "${ED2_DIR}" || as_fn_error $? "failed to move ED2 sources into place" "$LINENO" 5
-    rm -f "${ED2_ZIP}"
-    downloaded_ed2=yes
-
+  as_fn_error $? "vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}" "$LINENO" 5
 fi
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: applying ED2 Windows compatibility patches" >&5
-printf "%s\n" "$as_me: applying ED2 Windows compatibility patches" >&6;}
-sh tools/patch_ed2_v220_windows.sh "${ED2_DIR}" || as_fn_error $? "failed to patch ED2 v.2.2.0 for Windows" "$LINENO" 5
-
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: regenerating ED2 source and dependency makefiles" >&5
-printf "%s\n" "$as_me: regenerating ED2 source and dependency makefiles" >&6;}
-(cd src && sh build_dependency.sh) || as_fn_error $? "failed to regenerate ED2 dependency makefiles" "$LINENO" 5
+#AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
+#(cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
@@ -3805,32 +3757,7 @@ if ac_fn_fc_try_compile "$LINENO"
 then :
   ac_compiler_gnu=yes
 else $as_nop
-  cat > conftest.$ac_ext <<_ACEOF
-      program main
-#ifndef __flang__
-       choke me
-#endif
-
-      end
-_ACEOF
-if ac_fn_fc_try_compile "$LINENO"
-then :
-  case `$FC $FCFLAGS --print-target-triple < /dev/null 2>&1` in
-		      *mingw*|*-gnu)
-		        ac_compiler_gnu=yes
-		        ;;
-		      *-msvc)
-		        ac_compiler_gnu=no
-		        ;;
-		      *)
-		        ## assume Flang is GNU-compatible by default
-		        ac_compiler_gnu=yes
-		        ;;
-		    esac
-else $as_nop
   ac_compiler_gnu=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 ac_cv_fc_compiler_gnu=$ac_compiler_gnu
@@ -4057,32 +3984,7 @@ if ac_fn_fc_try_compile "$LINENO"
 then :
   ac_compiler_gnu=yes
 else $as_nop
-  cat > conftest.$ac_ext <<_ACEOF
-      program main
-#ifndef __flang__
-       choke me
-#endif
-
-      end
-_ACEOF
-if ac_fn_fc_try_compile "$LINENO"
-then :
-  case `$FC $FCFLAGS --print-target-triple < /dev/null 2>&1` in
-		      *mingw*|*-gnu)
-		        ac_compiler_gnu=yes
-		        ;;
-		      *-msvc)
-		        ac_compiler_gnu=no
-		        ;;
-		      *)
-		        ## assume Flang is GNU-compatible by default
-		        ac_compiler_gnu=yes
-		        ;;
-		    esac
-else $as_nop
   ac_compiler_gnu=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 ac_cv_fc_compiler_gnu=$ac_compiler_gnu
@@ -4148,136 +4050,7 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $FC" >&5
 printf "%s\n" "$FC" >&6; }
-
-
-
-
-
-
-
-if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
-	if test -n "$ac_tool_prefix"; then
-  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
-set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-PKG_CONFIG=$ac_cv_path_PKG_CONFIG
-if test -n "$PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
-printf "%s\n" "$PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-
-fi
-if test -z "$ac_cv_path_PKG_CONFIG"; then
-  ac_pt_PKG_CONFIG=$PKG_CONFIG
-  # Extract the first word of "pkg-config", so it can be a program name with args.
-set dummy pkg-config; ac_word=$2
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-printf %s "checking for $ac_word... " >&6; }
-if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-  case $ac_pt_PKG_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  case $as_dir in #(((
-    '') as_dir=./ ;;
-    */) ;;
-    *) as_dir=$as_dir/ ;;
-  esac
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
-    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
-    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
-if test -n "$ac_pt_PKG_CONFIG"; then
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
-printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
-else
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-fi
-
-  if test "x$ac_pt_PKG_CONFIG" = x; then
-    PKG_CONFIG=""
-  else
-    case $cross_compiling:$ac_tool_warned in
-yes:)
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
-printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
-ac_tool_warned=yes ;;
-esac
-    PKG_CONFIG=$ac_pt_PKG_CONFIG
-  fi
-else
-  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
-fi
-
-fi
-if test -n "$PKG_CONFIG"; then
-	_pkg_min_version=0.9.0
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
-printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
-	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-	else
-		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-		PKG_CONFIG=""
-	fi
-fi
+PKG_PROG_PKG_CONFIG()
 
 red2_windows_intel=no
 red2_intel_compiler=no
@@ -4433,77 +4206,7 @@ fi
 
 if test "x$have_hdf5" != "xyes"
 then :
-
-pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for hdf5_fortran" >&5
-printf %s "checking for hdf5_fortran... " >&6; }
-
-if test -n "$hdf5_fortran_CFLAGS"; then
-    pkg_cv_hdf5_fortran_CFLAGS="$hdf5_fortran_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_fortran\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "hdf5_fortran") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_hdf5_fortran_CFLAGS=`$PKG_CONFIG --cflags "hdf5_fortran" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$hdf5_fortran_LIBS"; then
-    pkg_cv_hdf5_fortran_LIBS="$hdf5_fortran_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_fortran\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "hdf5_fortran") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_hdf5_fortran_LIBS=`$PKG_CONFIG --libs "hdf5_fortran" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-                hdf5_fortran_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5_fortran" 2>&1`
-        else
-                hdf5_fortran_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5_fortran" 2>&1`
-        fi
-        # Put the nasty error message in config.log where it belongs
-        echo "$hdf5_fortran_PKG_ERRORS" >&5
-
-        have_hdf5=no
-elif test $pkg_failed = untried; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        have_hdf5=no
-else
-        hdf5_fortran_CFLAGS=$pkg_cv_hdf5_fortran_CFLAGS
-        hdf5_fortran_LIBS=$pkg_cv_hdf5_fortran_LIBS
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-        have_hdf5=yes
-fi
+  PKG_CHECK_MODULES(hdf5_fortran, hdf5_fortran, have_hdf5=yes, have_hdf5=no)
 fi
 
 if test "x$enable_mpi" = "xyes"
@@ -4570,77 +4273,7 @@ fi
 fi
 
 else $as_nop
-
-pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for msmpi" >&5
-printf %s "checking for msmpi... " >&6; }
-
-if test -n "$MPI_CFLAGS"; then
-    pkg_cv_MPI_CFLAGS="$MPI_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"msmpi\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "msmpi") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_MPI_CFLAGS=`$PKG_CONFIG --cflags "msmpi" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$MPI_LIBS"; then
-    pkg_cv_MPI_LIBS="$MPI_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"msmpi\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "msmpi") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_MPI_LIBS=`$PKG_CONFIG --libs "msmpi" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-                MPI_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "msmpi" 2>&1`
-        else
-                MPI_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "msmpi" 2>&1`
-        fi
-        # Put the nasty error message in config.log where it belongs
-        echo "$MPI_PKG_ERRORS" >&5
-
-        have_mpi=no
-elif test $pkg_failed = untried; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        have_mpi=no
-else
-        MPI_CFLAGS=$pkg_cv_MPI_CFLAGS
-        MPI_LIBS=$pkg_cv_MPI_LIBS
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-        have_mpi=yes
-fi
+  PKG_CHECK_MODULES(MPI, msmpi, have_mpi=yes, have_mpi=no)
 fi
 
         if test "x$have_mpi" != "xyes"
@@ -4731,77 +4364,7 @@ fi
         if test "x$have_mpi" != "xyes"
 then :
 
-
-pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for mpi-fort" >&5
-printf %s "checking for mpi-fort... " >&6; }
-
-if test -n "$MPI_CFLAGS"; then
-    pkg_cv_MPI_CFLAGS="$MPI_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"mpi-fort\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "mpi-fort") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_MPI_CFLAGS=`$PKG_CONFIG --cflags "mpi-fort" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$MPI_LIBS"; then
-    pkg_cv_MPI_LIBS="$MPI_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"mpi-fort\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "mpi-fort") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_MPI_LIBS=`$PKG_CONFIG --libs "mpi-fort" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-                MPI_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "mpi-fort" 2>&1`
-        else
-                MPI_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "mpi-fort" 2>&1`
-        fi
-        # Put the nasty error message in config.log where it belongs
-        echo "$MPI_PKG_ERRORS" >&5
-
-        have_mpi=no
-elif test $pkg_failed = untried; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        have_mpi=no
-else
-        MPI_CFLAGS=$pkg_cv_MPI_CFLAGS
-        MPI_LIBS=$pkg_cv_MPI_LIBS
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-        have_mpi=yes
-fi
+            PKG_CHECK_MODULES(MPI, mpi-fort, have_mpi=yes, have_mpi=no)
 
 fi
 
@@ -4861,77 +4424,7 @@ fi
 
 else $as_nop
 
-
-pkg_failed=no
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for hdf5" >&5
-printf %s "checking for hdf5... " >&6; }
-
-if test -n "$HDF5_CFLAGS"; then
-    pkg_cv_HDF5_CFLAGS="$HDF5_CFLAGS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "hdf5") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_HDF5_CFLAGS=`$PKG_CONFIG --cflags "hdf5" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-if test -n "$HDF5_LIBS"; then
-    pkg_cv_HDF5_LIBS="$HDF5_LIBS"
- elif test -n "$PKG_CONFIG"; then
-    if test -n "$PKG_CONFIG" && \
-    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "hdf5") 2>&5
-  ac_status=$?
-  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
-  test $ac_status = 0; }; then
-  pkg_cv_HDF5_LIBS=`$PKG_CONFIG --libs "hdf5" 2>/dev/null`
-		      test "x$?" != "x0" && pkg_failed=yes
-else
-  pkg_failed=yes
-fi
- else
-    pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-                HDF5_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5" 2>&1`
-        else
-                HDF5_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5" 2>&1`
-        fi
-        # Put the nasty error message in config.log where it belongs
-        echo "$HDF5_PKG_ERRORS" >&5
-
-        have_hdf5=no
-elif test $pkg_failed = untried; then
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
-        have_hdf5=no
-else
-        HDF5_CFLAGS=$pkg_cv_HDF5_CFLAGS
-        HDF5_LIBS=$pkg_cv_HDF5_LIBS
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
-        have_hdf5=yes
-fi
+    PKG_CHECK_MODULES(HDF5, hdf5, have_hdf5=yes, have_hdf5=no)
 
     if test "x$have_hdf5" = "xyes"
 then :

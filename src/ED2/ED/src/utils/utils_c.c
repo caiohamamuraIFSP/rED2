@@ -36,63 +36,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
-#if defined(_WIN32)
-static int alphasort(const struct dirent **a, const struct dirent **b)
-{
-  return strcmp((*a)->d_name, (*b)->d_name);
-}
-
-static int scandir(const char *dirname, struct dirent ***namelist,
-                   int (*select)(const struct dirent *),
-                   int (*compar)(const struct dirent **, const struct dirent **))
-{
-  DIR *dirp;
-  struct dirent *entry;
-  struct dirent **entries = NULL;
-  int count = 0;
-  int capacity = 0;
-
-  dirp = opendir(dirname);
-  if (dirp == NULL) return -1;
-
-  while ((entry = readdir(dirp)) != NULL) {
-    struct dirent **new_entries;
-    struct dirent *copy;
-
-    if (select != NULL && !select(entry)) continue;
-
-    if (count == capacity) {
-      capacity = capacity == 0 ? 16 : capacity * 2;
-      new_entries = realloc(entries, capacity * sizeof(*entries));
-      if (new_entries == NULL) {
-        closedir(dirp);
-        while (count > 0) free(entries[--count]);
-        free(entries);
-        return -1;
-      }
-      entries = new_entries;
-    }
-
-    copy = malloc(sizeof(*copy));
-    if (copy == NULL) {
-      closedir(dirp);
-      while (count > 0) free(entries[--count]);
-      free(entries);
-      return -1;
-    }
-    memcpy(copy, entry, sizeof(*copy));
-    entries[count++] = copy;
-  }
-
-  closedir(dirp);
-  if (compar != NULL) qsort(entries, count, sizeof(*entries),
-                            (int (*)(const void *, const void *))compar);
-  *namelist = entries;
-  return count;
-}
-#endif
-
 #endif
 
 /* Prototypes not needed except for C++
@@ -166,7 +109,8 @@ void irsleep(int *seconds)
 #if defined(_WIN32)
    Sleep((DWORD)(*seconds) * 1000U);
 #elif !defined (PC_NT1)
-   sleep( *seconds );
+   extern unsigned int sleep(unsigned int);
+   sleep((unsigned int)(*seconds));
 #endif
 
    return;
@@ -374,27 +318,7 @@ int vfscale(float *a,int n,double *min,double *max )
 
 /************************************************************************/
 #if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
-#if !defined(_WIN32)
 #include <dirent.h>
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
-#endif
 #endif
 #include <string.h>
 
@@ -549,7 +473,7 @@ void filelist_c_( int *inum, int *indices, char *prefix, char *chario){
 
 	  /* Now compare the end of the string */
 	  
-	  if (tfound>1 & val==0) {
+	  if ((tfound > 1) && (val == 0)) {
 
 	    val=-1;
 
@@ -633,4 +557,3 @@ int findmycpu_ ()
     return cpu;
 }
 #endif
-
