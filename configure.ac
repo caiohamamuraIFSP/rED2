@@ -92,7 +92,7 @@ sh tools/patch_ed2_v220_windows.sh "${ED2_DIR}" || AC_MSG_ERROR([failed to patch
 AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
 (cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
-CFLAGS="${CFLAGS} -I\"ED2/ED/src/include\""
+CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
 output_files="src/ed2.mk"
 AS_IF([test "x$os_name" = "xWindows"],

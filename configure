@@ -2348,7 +2348,7 @@ sh tools/patch_ed2_v220_windows.sh "${ED2_DIR}" || as_fn_error $? "failed to pat
 printf "%s\n" "$as_me: regenerating ED2 source and dependency makefiles" >&6;}
 (cd src && sh build_dependency.sh) || as_fn_error $? "failed to regenerate ED2 dependency makefiles" "$LINENO" 5
 
-CFLAGS="${CFLAGS} -I\"ED2/ED/src/include\""
+CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
 output_files="src/ed2.mk"
 if test "x$os_name" = "xWindows"

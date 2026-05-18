@@ -89,7 +89,8 @@ if [ ! -x "$vcpkg_exe" ]; then
 fi
 
 if [ ! -f "$vcpkg_root/installed/$triplet/include/hdf5.mod" ]; then
-  "$vcpkg_exe" install "hdf5[fortran]:$triplet" --overlay-triplets="$overlay" >&2
+  env CFLAGS= CPPFLAGS= CXXFLAGS= FCFLAGS= FFLAGS= \
+    "$vcpkg_exe" install "hdf5[fortran]:$triplet" --overlay-triplets="$overlay" >&2
 fi
 
 printf '%s\n' "$vcpkg_root/installed/$triplet"
