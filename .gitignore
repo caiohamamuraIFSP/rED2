@@ -12,3 +12,4 @@ Makefile.ucrt
 Makefile.ucrt.in
 .Rproj.user
 .positai
+.Rhistory

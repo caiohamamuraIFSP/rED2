@@ -10,3 +10,4 @@
 ^src/ED2_old$
 ^src/ED2-v.*\.zip$
 ^aclocal\.m4$
+inst/bin/
