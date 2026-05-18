@@ -12,10 +12,65 @@ SHLIB="rED2.so"
 RED2_WINDOWS_TOOLCHAIN=${RED2_WINDOWS_TOOLCHAIN:-}
 TOOLPATH=""
 TOOL_ENV=""
+TOOL_LIB=""
+TOOL_INCLUDE=""
+TOOL_DLL_DIR=""
+red2_windows_intel_requested=no
 
 AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
   [
+    red2_windows_intel_requested=yes
     red2_vs_bin=${RED2_VS_BIN:-}
+    red2_vs_root=${RED2_VS_ROOT:-}
+
+    AS_IF([test -z "$red2_vs_root"],
+      [
+        for red2_vswhere in "/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" "/c/Program Files/Microsoft Visual Studio/Installer/vswhere.exe"; do
+          AS_IF([test -f "$red2_vswhere"],
+            [
+              red2_vs_root=`"$red2_vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>/dev/null | tr -d '\r'`
+              AS_IF([test -n "$red2_vs_root"], [break])
+            ])
+        done
+      ])
+    AS_IF([test -z "$red2_vs_root"],
+      [
+        for red2_candidate in "/c/Program Files/Microsoft Visual Studio/"*/* "/c/Program Files (x86)/Microsoft Visual Studio/"*/*; do
+          AS_IF([test -f "$red2_candidate/VC/Auxiliary/Build/vcvars64.bat"], [red2_vs_root="$red2_candidate"])
+        done
+      ])
+
+    AS_IF([test -n "$red2_vs_root" -a -f "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"],
+      [
+        AC_MSG_NOTICE([importing Visual Studio build environment from $red2_vs_root])
+        red2_vcvars=`cygpath -w "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat" 2>/dev/null || printf '%s' "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"`
+        red2_env_file=conftest.red2.vcvars.env
+        cmd.exe //d //s //c "call \"$red2_vcvars\" >NUL && set" > "$red2_env_file" 2>/dev/null
+        red2_imported_lib=`sed -n 's/^[Ll][Ii][Bb]=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+        red2_imported_include=`sed -n 's/^[Ii][Nn][Cc][Ll][Uu][Dd][Ee]=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+        red2_imported_vctools=`sed -n 's/^[Vv][Cc][Tt][Oo][Oo][Ll][Ss][Ii][Nn][Ss][Tt][Aa][Ll][Ll][Dd][Ii][Rr]=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+        rm -f "$red2_env_file"
+        AS_IF([test -n "$red2_imported_lib"],
+          [
+            AS_IF([test -n "$LIB"], [LIB="${red2_imported_lib};${LIB}"], [LIB="$red2_imported_lib"])
+            export LIB
+          ])
+        AS_IF([test -n "$red2_imported_include"],
+          [
+            AS_IF([test -n "$INCLUDE"], [INCLUDE="${red2_imported_include};${INCLUDE}"], [INCLUDE="$red2_imported_include"])
+            export INCLUDE
+          ])
+        AS_IF([test -z "$red2_vs_bin" -a -n "$red2_imported_vctools"],
+          [red2_vs_bin="${red2_imported_vctools}/bin/Hostx64/x64"])
+      ])
+
+    AS_IF([test -z "$red2_vs_bin" -a -n "$red2_vs_root"],
+      [
+        red2_msvc_dir=`ls -d "$red2_vs_root"/VC/Tools/MSVC/* 2>/dev/null | tail -n 1`
+        AS_IF([test -n "$red2_msvc_dir" -a -d "$red2_msvc_dir/bin/Hostx64/x64"],
+          [red2_vs_bin="$red2_msvc_dir/bin/Hostx64/x64"])
+      ])
+
     AS_IF([test -z "$red2_vs_bin" -a -n "$VCToolsInstallDir" -a -d "${VCToolsInstallDir}/bin/Hostx64/x64"],
       [red2_vs_bin="${VCToolsInstallDir}/bin/Hostx64/x64"])
 
@@ -24,6 +79,35 @@ AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
         red2_vs_bin=`cygpath -u "$red2_vs_bin" 2>/dev/null || printf '%s' "$red2_vs_bin"`
         TOOLPATH="$red2_vs_bin"
       ])
+    red2_msvc_root=`printf '%s\n' "$red2_vs_bin" | sed 's|/bin/Hostx64/x64$||'`
+    AS_IF([test -n "$red2_msvc_root" -a -d "$red2_msvc_root/lib/x64"],
+      [
+        red2_msvc_lib=`cygpath -m "$red2_msvc_root/lib/x64" 2>/dev/null || printf '%s' "$red2_msvc_root/lib/x64"`
+        red2_msvc_include=`cygpath -m "$red2_msvc_root/include" 2>/dev/null || printf '%s' "$red2_msvc_root/include"`
+        AS_IF([test -n "$LIB"], [LIB="${red2_msvc_lib};${LIB}"], [LIB="$red2_msvc_lib"])
+        AS_IF([test -n "$INCLUDE"], [INCLUDE="${red2_msvc_include};${INCLUDE}"], [INCLUDE="$red2_msvc_include"])
+      ])
+    red2_sdk_lib=`ls -d "/c/Program Files (x86)/Windows Kits/10/Lib/"* 2>/dev/null | tail -n 1`
+    red2_sdk_include=`ls -d "/c/Program Files (x86)/Windows Kits/10/Include/"* 2>/dev/null | tail -n 1`
+    AS_IF([test -n "$red2_sdk_lib" -a -d "$red2_sdk_lib/ucrt/x64" -a -d "$red2_sdk_lib/um/x64"],
+      [
+        red2_sdk_ucrt=`cygpath -m "$red2_sdk_lib/ucrt/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/ucrt/x64"`
+        red2_sdk_um=`cygpath -m "$red2_sdk_lib/um/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/um/x64"`
+        AS_IF([test -n "$LIB"], [LIB="${red2_sdk_ucrt};${red2_sdk_um};${LIB}"], [LIB="${red2_sdk_ucrt};${red2_sdk_um}"])
+      ])
+    AS_IF([test -n "$red2_sdk_include" -a -d "$red2_sdk_include/ucrt"],
+      [
+        red2_sdk_include_ucrt=`cygpath -m "$red2_sdk_include/ucrt" 2>/dev/null || printf '%s' "$red2_sdk_include/ucrt"`
+        red2_sdk_include_um=`cygpath -m "$red2_sdk_include/um" 2>/dev/null || printf '%s' "$red2_sdk_include/um"`
+        red2_sdk_include_shared=`cygpath -m "$red2_sdk_include/shared" 2>/dev/null || printf '%s' "$red2_sdk_include/shared"`
+        red2_sdk_include_winrt=`cygpath -m "$red2_sdk_include/winrt" 2>/dev/null || printf '%s' "$red2_sdk_include/winrt"`
+        AS_IF([test -n "$INCLUDE"],
+          [INCLUDE="${red2_sdk_include_ucrt};${red2_sdk_include_um};${red2_sdk_include_shared};${red2_sdk_include_winrt};${INCLUDE}"],
+          [INCLUDE="${red2_sdk_include_ucrt};${red2_sdk_include_um};${red2_sdk_include_shared};${red2_sdk_include_winrt}"])
+      ])
+    export LIB
+    export INCLUDE
+
     red2_ifx_path=`command -v ifx 2>/dev/null || true`
     AS_IF([test -z "$red2_ifx_path"],
       [
@@ -37,6 +121,8 @@ AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
         red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
         red2_ifx_root=`dirname "$red2_ifx_bin"`
         red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+        AS_IF([test -n "$LIB"], [LIB="${red2_ifx_lib};${LIB}"], [LIB="$red2_ifx_lib"])
+        export LIB
         PATH="${red2_ifx_bin}:$PATH"
         AS_IF([test -n "$TOOLPATH"],
           [TOOLPATH="${TOOLPATH}:${red2_ifx_bin}"],
@@ -57,6 +143,8 @@ AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
     AR="\"$AR\""
     ARFLAGS=${RED2_ARFLAGS:--nologo}
     AROUT="-out:"
+    TOOL_LIB="$LIB"
+    TOOL_INCLUDE="$INCLUDE"
   ],
   [
     : ${CC:=`"${R_BIN}" CMD config CC`}
@@ -133,6 +221,11 @@ FC_BASE=`basename "$FC_PROG" 2>/dev/null || printf '%s' "$FC_PROG"`
 AS_IF([test "x$os_name" = "xWindows"],
   [AS_CASE([$FC_BASE], [ifx|ifx.exe|ifort|ifort.exe], [red2_windows_intel=yes])])
 AS_CASE([$FC_BASE], [ifx|ifx.exe|ifort|ifort.exe], [red2_intel_compiler=yes])
+AC_MSG_NOTICE([selected C compiler: $CC])
+AC_MSG_NOTICE([selected Fortran compiler: $FC])
+
+AS_IF([test "x$red2_windows_intel_requested" = "xyes" -a "x$red2_windows_intel" != "xyes"],
+  [AC_MSG_ERROR([RED2_WINDOWS_TOOLCHAIN=intel was requested, but configure did not select ifx/ifort. Put Intel oneAPI compiler bin in PATH or set RED2_FC to ifx.])])
 
 AS_IF([test "x$red2_windows_intel" = "xyes"],
   [TOOL_ENV="MSYS2_ARG_CONV_EXCL='*'"])
@@ -176,6 +269,7 @@ AS_IF([test "x$red2_windows_intel" = "xyes"],
           [
             hdf5_fortran_CFLAGS="-I\"$red2_hdf5_root/include\""
             hdf5_fortran_LIBS="/link /LIBPATH:\"$red2_ifx_lib\" /LIBPATH:\"$red2_hdf5_root/lib\" hdf5_fortran.lib hdf5_f90cstub.lib hdf5.lib z.lib szip.lib aec.lib"
+            AS_IF([test -d "$red2_hdf5_root/bin"], [TOOL_DLL_DIR="$red2_hdf5_root/bin"])
             have_hdf5=yes
           ])
       ])
@@ -415,5 +509,8 @@ AC_SUBST([FCFLAGS])
 AC_SUBST([CFLAGS])
 AC_SUBST([TOOLPATH])
 AC_SUBST([TOOL_ENV])
+AC_SUBST([TOOL_LIB])
+AC_SUBST([TOOL_INCLUDE])
+AC_SUBST([TOOL_DLL_DIR])
 AC_CONFIG_FILES([${output_files}:src/ed2.mk.in])
 AC_OUTPUT
