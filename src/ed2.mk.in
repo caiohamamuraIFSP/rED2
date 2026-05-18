@@ -66,7 +66,8 @@ $(MAIN): $(OBJ_MAIN) $(STATICLIB)
 		for lib in "$(TOOL_DLL_DIR)"/*.dll "$(TOOL_DLL_DIR)"/*.so "$(TOOL_DLL_DIR)"/*.so.*; do \
 			test -f "$$lib" && $(CP) "$$lib" $(INSTALLDIR)/bin/; \
 		done; \
-	fi
+	fi; \
+	true
 
 $(PATCHSTAMP):
 	cd .. && sh tools/patch_ed2_v220_windows.sh src/ED2
