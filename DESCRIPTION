@@ -4,7 +4,23 @@ Version: 0.1.0
 Authors@R: c(
     person("Caio", "Hamamura", , "caiohamamura@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-6149-5885")),
-    person("Carlos Alberto", "Silva", email = "carlos_engflorestal@outlook.com", role = c("aut","cph")))
+    person("Carlos Alberto", "Silva", email = "carlos_engflorestal@outlook.com", role = c("aut","cph")),
+    person("Marcos", "Longo", role = "cph"),
+    person("Ryan", "Knox", role = "cph"),
+    person(c("David", "Michael"), "Medvigy", role = "cph"),
+    person(c("Naomi", "Marcil"), "Levine", role = "cph"),
+    person("Michael", "Dietze", role = "cph"),
+    person(c("Abigail", "L.", "S."), "Swann", role = "cph"),
+    person("Ke", "Zhang", role = "cph"),
+    person("Christine", "Rollinson", role = "cph"),
+    person("Manfredo", "di Porcia e Brugnera", role = "cph"),
+    person("Daniel", "Scott", role = "cph"),
+    person(c("Shawn", "P."), "Serbin", role = "cph"),
+    person("Rob", "Kooper", role = "cph"),
+    person("Afshin", "Pourmokhtarian", role = "cph"),
+    person("Alexey", "Shiklomanov", role = "cph"),
+    person("Toni", "Viskari", role = "cph"),
+    person("Paul", "Moorcroft", role = "cph"))
 Description: R package for compiling and running Ecosystem Demography Model <https://github.com/EDmodel/ED2>.
 License: MIT + file LICENSE
 Encoding: UTF-8

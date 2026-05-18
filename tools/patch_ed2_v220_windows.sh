@@ -12,6 +12,7 @@ set -eu
 ed2_dir="${1:-src/ED2}"
 edmain="${ed2_dir}/ED/src/driver/edmain.F90"
 utils_c="${ed2_dir}/ED/src/utils/utils_c.c"
+rsys="${ed2_dir}/ED/src/utils/rsys.F90"
 compat_header='../../../../../tools/ed2_compat_prefix.h'
 
 require_file() {
@@ -49,6 +50,10 @@ include_c_compat_header() {
       -e "s|#include <math\\.h>|#include <math.h>\\n#include \"$compat_header\"|" \
       "$utils_c"
   fi
+
+  perl -0pi \
+    -e 's/#include <dirent\.h>/#if !defined(_WIN32)\n#include <dirent.h>\n#endif/g' \
+    "$utils_c"
 }
 
 patch_c_pointer_width() {
@@ -69,6 +74,7 @@ patch_c_warning_fixes() {
     -e 's/fread\(b,1,80,\s*ramsfile\);/if (fread(b,1,80,ramsfile) != 80) return;/;' \
     -e 's/fread\(b,1,\*n \* nchs,ramsfile\);/if (fread(b,1,*n * nchs,ramsfile) != (size_t)(*n * nchs)) return;/;' \
     -e "s/token != '\\\\0'/token != NULL/g;" \
+    -e 's/tfound>1 & val==0/(tfound > 1) \&\& (val == 0)/g;' \
     "$utils_c"
 }
 
@@ -78,6 +84,37 @@ patch_windows_cpu_helper() {
   perl -0pi \
     -e 's/#if defined\(SUNHPC\) \|\| defined\(__APPLE__\)(?: \|\| defined\(_WIN32\))*/#if defined(SUNHPC) || defined(__APPLE__) || defined(_WIN32)/;' \
     "$utils_c"
+}
+
+patch_windows_sleep_helper() {
+  # MSVC does not provide POSIX sleep; use the Win32 API there.  On POSIX
+  # builds with strict C99 checks (icx), declare sleep explicitly so we do not
+  # rely on implicit declarations.
+  perl -0pi \
+    -e 's@void irsleep\(int \*seconds\)\s*\{[^}]*\}@void irsleep(int *seconds)\n{\n#if defined(_WIN32)\n   Sleep((DWORD)(*seconds) * 1000U);\n#elif !defined (PC_NT1)\n   extern unsigned int sleep(unsigned int);\n   sleep((unsigned int)(*seconds));\n#endif\n\n   return;\n}@s' \
+    "$utils_c"
+}
+
+patch_intel_getpid() {
+  # Intel Fortran exposes getpid through ifport.  ED2 already uses that module
+  # on Intel-specific platforms; include Windows and oneAPI ifx builds in the
+  # same path so Linux/WSL Intel builds are covered too.
+  random_utils="${ed2_dir}/ED/src/utils/random_utils.F90"
+  require_file "$random_utils" "ED2 random utility source"
+
+  perl -0pi \
+    -e 's/#if defined\(ODYSSEY\) \|\| defined\(SUNHPC\) \|\| defined\(PC_INTEL\)(?: \|\| defined\(_WIN32\)| \|\| defined\(__INTEL_COMPILER\)| \|\| defined\(__INTEL_LLVM_COMPILER\))*/#if defined(ODYSSEY) || defined(SUNHPC) || defined(PC_INTEL) || defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)/;' \
+    "$random_utils"
+}
+
+patch_windows_timing() {
+  # Intel Fortran on Windows does not provide gfortran's ETIME external.  ED2
+  # only needs elapsed CPU time here, so use the standard intrinsic.
+  require_file "$rsys" "ED2 system utility source"
+
+  perl -0pi \
+    -e 's/#if defined\(CRAY\)\n      call cpu_time\(T1\)/#if defined(CRAY) || defined(_WIN32)\n      call cpu_time(T1)/g' \
+    "$rsys"
 }
 
 verify_patches() {
@@ -101,8 +138,28 @@ verify_patches() {
     exit 1
   }
 
+  grep -Fq '(tfound > 1) && (val == 0)' "$utils_c" || {
+    echo "ED2 C warning patch was not applied to: $utils_c" >&2
+    exit 1
+  }
+
   grep -Fq 'defined(SUNHPC) || defined(__APPLE__) || defined(_WIN32)' "$utils_c" || {
     echo "ED2 Windows CPU helper patch was not applied to: $utils_c" >&2
+    exit 1
+  }
+
+  grep -Fq 'Sleep((DWORD)(*seconds) * 1000U)' "$utils_c" || {
+    echo "ED2 Windows sleep patch was not applied to: $utils_c" >&2
+    exit 1
+  }
+
+  grep -Fq 'defined(ODYSSEY) || defined(SUNHPC) || defined(PC_INTEL) || defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)' "${ed2_dir}/ED/src/utils/random_utils.F90" || {
+    echo "ED2 Intel getpid patch was not applied to: ${ed2_dir}/ED/src/utils/random_utils.F90" >&2
+    exit 1
+  }
+
+  grep -Fq 'defined(CRAY) || defined(_WIN32)' "$rsys" || {
+    echo "ED2 Windows timing patch was not applied to: $rsys" >&2
     exit 1
   }
 }
@@ -116,4 +173,7 @@ include_c_compat_header
 patch_c_pointer_width
 patch_c_warning_fixes
 patch_windows_cpu_helper
+patch_windows_sleep_helper
+patch_intel_getpid
+patch_windows_timing
 verify_patches

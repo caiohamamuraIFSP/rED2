@@ -5,6 +5,9 @@ SRC_MAIN = ED2/ED/src/driver/edmain.F90
 
 FC=@FC@
 CC=@CC@
+AR=@AR@
+ARFLAGS=@ARFLAGS@
+AROUT=@AROUT@
 
 # Define the main program and static library variables
 MAIN = @MAIN@
@@ -29,6 +32,12 @@ OBJECTS_2 = $(OBJECTS_1:.f90=.o)
 OBJECTS = $(OBJECTS_2:.c=.o)
 
 INSTALLDIR = ../inst
+TOOLPATH = @TOOLPATH@
+TOOL_ENV = @TOOL_ENV@
+
+ifneq ($(strip $(TOOLPATH)),)
+export PATH := $(TOOLPATH):$(PATH)
+endif
 
 # Additional Fortran clean files
 CLEANFILES = *.mod $(OBJECTS) $(MAIN) $(STATICLIB) $(PATCHSTAMP) $(INSTALLDIR)/bin/$(MAIN)
@@ -39,7 +48,7 @@ all: $(MAIN)
 include dependency.mk
 
 $(MAIN): $(OBJ_MAIN) $(STATICLIB)
-	$(FC) $(FCFLAGS) -o $@ $^ $(LDFLAGS); \
+	$(TOOL_ENV) $(FC) $(FCFLAGS) -o $@ $^ $(LDFLAGS); \
   $(MD) $(INSTALLDIR)/bin; \
   $(CP) $(MAIN) $(INSTALLDIR)/bin/;
 
@@ -50,7 +59,7 @@ $(PATCHSTAMP):
 $(OBJ_MAIN) $(OBJECTS): | $(PATCHSTAMP)
 
 $(STATICLIB): $(OBJECTS)
-	$(AR) $(ARFLAGS) $@ $^
+	$(AR) $(ARFLAGS) $(AROUT)$@ $^
 
 %.o: %.F90
 	$(FC) -c $(FCFLAGS) -o $@ $<
