@@ -7,7 +7,7 @@ installs the `edmain` executable inside the package.
 ## Install
 
 ```r
-pak::pak("caiohamamura/rED2")
+pak::pak("caiohamamuraIFSP/rED2")
 ```
 
 The package `configure` script prepares ED2, applies portability patches, finds
@@ -23,7 +23,7 @@ For MPI:
 
 ```r
 Sys.setenv(RED2_ENABLE_MPI = "yes")
-pak::pak("caiohamamura/rED2")
+pak::pak("caiohamamuraIFSP/rED2")
 ```
 
 For Intel compilers on Windows:
@@ -32,14 +32,14 @@ For Intel compilers on Windows:
 Sys.setenv(
   RED2_WINDOWS_TOOLCHAIN = "intel"
 )
-pak::pak("caiohamamura/rED2")
+pak::pak("caiohamamuraIFSP/rED2")
 ```
 
 For Intel compilers on Linux/WSL:
 
 ```r
 Sys.setenv(CC = "icx", CXX = "icpx", FC = "ifx", F77 = "ifx")
-pak::pak("caiohamamura/rED2")
+pak::pak("caiohamamuraIFSP/rED2")
 ```
 
 To use an existing HDF5 build instead of vcpkg:
