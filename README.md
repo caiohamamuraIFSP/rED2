@@ -35,6 +35,22 @@ Sys.setenv(
 pak::pak("caiohamamuraIFSP/rED2")
 ```
 
+If Intel oneAPI is installed somewhere other than the default location, add its
+compiler `bin` directory first:
+
+```r
+oneapi_bin <- "C:/path/to/Intel/oneAPI/compiler/latest/bin"
+Sys.setenv(
+  PATH = paste(oneapi_bin, Sys.getenv("PATH"), sep = .Platform$path.sep),
+  CC = "icx",
+  CXX = "icpx",
+  FC = "ifx",
+  F77 = "ifx",
+  RED2_WINDOWS_TOOLCHAIN = "intel"
+)
+pak::pak("caiohamamuraIFSP/rED2")
+```
+
 For Intel compilers on Linux/WSL:
 
 ```r

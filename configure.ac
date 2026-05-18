@@ -24,12 +24,20 @@ AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
         red2_vs_bin=`cygpath -u "$red2_vs_bin" 2>/dev/null || printf '%s' "$red2_vs_bin"`
         TOOLPATH="$red2_vs_bin"
       ])
-    red2_ifx_bin=`dirname "$(command -v ifx 2>/dev/null || printf ifx)"`
+    red2_ifx_path=`command -v ifx 2>/dev/null || true`
+    AS_IF([test -z "$red2_ifx_path"],
+      [
+        for red2_candidate in "/c/Program Files (x86)/Intel/oneAPI/compiler/"*/bin "/c/Program Files/Intel/oneAPI/compiler/"*/bin; do
+          AS_IF([test -f "$red2_candidate/ifx.exe"], [red2_ifx_path="$red2_candidate/ifx.exe"])
+        done
+      ])
+    red2_ifx_bin=`dirname "${red2_ifx_path:-ifx}"`
     AS_IF([test -d "$red2_ifx_bin"],
       [
         red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
         red2_ifx_root=`dirname "$red2_ifx_bin"`
         red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+        PATH="${red2_ifx_bin}:$PATH"
         AS_IF([test -n "$TOOLPATH"],
           [TOOLPATH="${TOOLPATH}:${red2_ifx_bin}"],
           [TOOLPATH="$red2_ifx_bin"])

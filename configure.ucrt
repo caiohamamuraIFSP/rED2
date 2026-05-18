@@ -2254,13 +2254,26 @@ then :
         TOOLPATH="$red2_vs_bin"
 
 fi
-    red2_ifx_bin=`dirname "$(command -v ifx 2>/dev/null || printf ifx)"`
+    red2_ifx_path=`command -v ifx 2>/dev/null || true`
+    if test -z "$red2_ifx_path"
+then :
+
+        for red2_candidate in "/c/Program Files (x86)/Intel/oneAPI/compiler/"*/bin "/c/Program Files/Intel/oneAPI/compiler/"*/bin; do
+          if test -f "$red2_candidate/ifx.exe"
+then :
+  red2_ifx_path="$red2_candidate/ifx.exe"
+fi
+        done
+
+fi
+    red2_ifx_bin=`dirname "${red2_ifx_path:-ifx}"`
     if test -d "$red2_ifx_bin"
 then :
 
         red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
         red2_ifx_root=`dirname "$red2_ifx_bin"`
         red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+        PATH="${red2_ifx_bin}:$PATH"
         if test -n "$TOOLPATH"
 then :
   TOOLPATH="${TOOLPATH}:${red2_ifx_bin}"
