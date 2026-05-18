@@ -614,6 +614,7 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+TOOL_RUNTIME_DIR
 TOOL_DLL_DIR
 TOOL_INCLUDE
 TOOL_LIB
@@ -1866,9 +1867,7 @@ struct stat;
 /* Most of the following tests are stolen from RCS 5.7 src/conf.sh.  */
 struct buf { int x; };
 struct buf * (*rcsopen) (struct buf *, struct stat *, int);
-static char *e (p, i)
-     char **p;
-     int i;
+static char *e (char **p, int i)
 {
   return p[i];
 }
@@ -1919,6 +1918,7 @@ extern int puts (const char *);
 extern int printf (const char *, ...);
 extern int dprintf (int, const char *, ...);
 extern void *malloc (size_t);
+extern void free (void *);
 
 // Check varargs macros.  These examples are taken from C99 6.10.3.5.
 // dprintf is used instead of fprintf to avoid needing to declare
@@ -2286,6 +2286,7 @@ TOOL_ENV=""
 TOOL_LIB=""
 TOOL_INCLUDE=""
 TOOL_DLL_DIR=""
+TOOL_RUNTIME_DIR=""
 red2_windows_intel_requested=no
 red2_windows_intel=no
 red2_intel_compiler=no
@@ -2494,6 +2495,7 @@ then :
   red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
       red2_ifx_root=`dirname "$red2_ifx_bin"`
       red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+      TOOL_RUNTIME_DIR=`cygpath -m "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
       if test -n "$LIB"
 then :
   LIB="$red2_ifx_lib;$LIB"
@@ -2572,11 +2574,6 @@ if test ! -f "${ED2_DIR}/ED/src/driver/edmain.F90"
 then :
   as_fn_error $? "vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}" "$LINENO" 5
 fi
-
-# Dependency regeneration is intentionally left disabled. Enable this block only
-# when the vendored ED2 dependency makefiles need to be rebuilt from source.
-# AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
-# (cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
@@ -3867,7 +3864,32 @@ if ac_fn_fc_try_compile "$LINENO"
 then :
   ac_compiler_gnu=yes
 else $as_nop
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+#ifndef __flang__
+       choke me
+#endif
+
+      end
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"
+then :
+  case `$FC $FCFLAGS --print-target-triple < /dev/null 2>&1` in
+		      *mingw*|*-gnu)
+		        ac_compiler_gnu=yes
+		        ;;
+		      *-msvc)
+		        ac_compiler_gnu=no
+		        ;;
+		      *)
+		        ## assume Flang is GNU-compatible by default
+		        ac_compiler_gnu=yes
+		        ;;
+		    esac
+else $as_nop
   ac_compiler_gnu=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 ac_cv_fc_compiler_gnu=$ac_compiler_gnu
@@ -4094,7 +4116,32 @@ if ac_fn_fc_try_compile "$LINENO"
 then :
   ac_compiler_gnu=yes
 else $as_nop
+  cat > conftest.$ac_ext <<_ACEOF
+      program main
+#ifndef __flang__
+       choke me
+#endif
+
+      end
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"
+then :
+  case `$FC $FCFLAGS --print-target-triple < /dev/null 2>&1` in
+		      *mingw*|*-gnu)
+		        ac_compiler_gnu=yes
+		        ;;
+		      *-msvc)
+		        ac_compiler_gnu=no
+		        ;;
+		      *)
+		        ## assume Flang is GNU-compatible by default
+		        ac_compiler_gnu=yes
+		        ;;
+		    esac
+else $as_nop
   ac_compiler_gnu=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
 ac_cv_fc_compiler_gnu=$ac_compiler_gnu
@@ -4977,6 +5024,7 @@ fi
 # -----------------------------------------------------------------------------
 # Substitutions consumed by src/ed2.mk.in
 # -----------------------------------------------------------------------------
+
 
 
 

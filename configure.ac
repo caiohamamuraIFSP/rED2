@@ -64,6 +64,7 @@ TOOL_ENV=""
 TOOL_LIB=""
 TOOL_INCLUDE=""
 TOOL_DLL_DIR=""
+TOOL_RUNTIME_DIR=""
 red2_windows_intel_requested=no
 red2_windows_intel=no
 red2_intel_compiler=no
@@ -186,6 +187,7 @@ AC_DEFUN([RED2_FIND_INTEL_IFX],
      [red2_ifx_bin=RED2_PATH_UNIX([$red2_ifx_bin])
       red2_ifx_root=`dirname "$red2_ifx_bin"`
       red2_ifx_lib=RED2_PATH_MIXED([$red2_ifx_root/lib])
+      TOOL_RUNTIME_DIR=RED2_PATH_MIXED([$red2_ifx_bin])
       RED2_PREPEND_SEMI_ENV([LIB], [$red2_ifx_lib])
       RED2_ADD_TOOL_BIN([$red2_ifx_bin])])])
 
@@ -249,11 +251,6 @@ AS_CASE([$enable_mpi],
 AC_MSG_NOTICE([preparing ED2 v.2.2.0 sources])
 AS_IF([test ! -f "${ED2_DIR}/ED/src/driver/edmain.F90"],
   [AC_MSG_ERROR([vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}])])
-
-# Dependency regeneration is intentionally left disabled. Enable this block only
-# when the vendored ED2 dependency makefiles need to be rebuilt from source.
-# AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
-# (cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
@@ -554,6 +551,7 @@ AC_SUBST([TOOL_ENV])
 AC_SUBST([TOOL_LIB])
 AC_SUBST([TOOL_INCLUDE])
 AC_SUBST([TOOL_DLL_DIR])
+AC_SUBST([TOOL_RUNTIME_DIR])
 
 AC_CONFIG_FILES([${output_files}:src/ed2.mk.in])
 AC_OUTPUT

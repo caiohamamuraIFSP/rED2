@@ -20,7 +20,7 @@ struct dirent {
 /*
  * ED2 v2.2.0 assumes POSIX scandir/alphasort are available.  Rtools provides
  * dirent-compatible directory iteration, but Intel/MSVC does not.  Keep the
- * small Windows fallback here instead of pasting it into downloaded ED2 sources.
+ * small Windows fallback here instead of pasting it into vendored ED2 sources.
  */
 static int alphasort(const struct dirent **a, const struct dirent **b)
 {

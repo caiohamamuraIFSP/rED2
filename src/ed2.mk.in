@@ -36,6 +36,7 @@ TOOL_ENV = @TOOL_ENV@
 TOOL_LIB = @TOOL_LIB@
 TOOL_INCLUDE = @TOOL_INCLUDE@
 TOOL_DLL_DIR = @TOOL_DLL_DIR@
+TOOL_RUNTIME_DIR = @TOOL_RUNTIME_DIR@
 
 ifneq ($(strip $(TOOLPATH)),)
 export PATH := $(TOOLPATH):$(PATH)
@@ -61,11 +62,13 @@ $(MAIN): $(OBJ_MAIN) $(STATICLIB)
 	$(TOOL_ENV) $(FC) $(FCFLAGS) -o $@ $^ $(LDFLAGS); \
 	$(MD) $(INSTALLDIR)/bin; \
 	$(CP) $(MAIN) $(INSTALLDIR)/bin/; \
-	if test -n "$(TOOL_DLL_DIR)" -a -d "$(TOOL_DLL_DIR)"; then \
-		for lib in "$(TOOL_DLL_DIR)"/*.dll "$(TOOL_DLL_DIR)"/*.so "$(TOOL_DLL_DIR)"/*.so.*; do \
-			test -f "$$lib" && $(CP) "$$lib" $(INSTALLDIR)/bin/; \
-		done; \
-	fi; \
+	for dir in "$(TOOL_DLL_DIR)" "$(TOOL_RUNTIME_DIR)"; do \
+		if test -n "$$dir" -a -d "$$dir"; then \
+			for lib in "$$dir"/*.dll "$$dir"/*.so "$$dir"/*.so.*; do \
+				test -f "$$lib" && $(CP) "$$lib" $(INSTALLDIR)/bin/; \
+			done; \
+		fi; \
+	done; \
 	true
 
 $(STATICLIB): $(OBJECTS)

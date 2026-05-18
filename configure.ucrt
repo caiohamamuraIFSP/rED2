@@ -614,6 +614,7 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+TOOL_RUNTIME_DIR
 TOOL_DLL_DIR
 TOOL_INCLUDE
 TOOL_LIB
@@ -2285,6 +2286,7 @@ TOOL_ENV=""
 TOOL_LIB=""
 TOOL_INCLUDE=""
 TOOL_DLL_DIR=""
+TOOL_RUNTIME_DIR=""
 red2_windows_intel_requested=no
 red2_windows_intel=no
 red2_intel_compiler=no
@@ -2493,6 +2495,7 @@ then :
   red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
       red2_ifx_root=`dirname "$red2_ifx_bin"`
       red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+      TOOL_RUNTIME_DIR=`cygpath -m "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
       if test -n "$LIB"
 then :
   LIB="$red2_ifx_lib;$LIB"
@@ -2571,11 +2574,6 @@ if test ! -f "${ED2_DIR}/ED/src/driver/edmain.F90"
 then :
   as_fn_error $? "vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}" "$LINENO" 5
 fi
-
-# Dependency regeneration is intentionally left disabled. Enable this block only
-# when the vendored ED2 dependency makefiles need to be rebuilt from source.
-# AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
-# (cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
@@ -4340,9 +4338,6 @@ printf "%s\n" "no" >&6; }
 		PKG_CONFIG=""
 	fi
 fi
-if test -z "$PKG_CONFIG"; then
-	as_fn_error $? "pkg-config not found" "$LINENO" 5
-fi
 
 FC_PROG=`printf '%s\n' "$FC" | sed 's/ .*//'`
 FC_BASE=`basename "$FC_PROG" 2>/dev/null || printf '%s' "$FC_PROG"`
@@ -5029,6 +5024,7 @@ fi
 # -----------------------------------------------------------------------------
 # Substitutions consumed by src/ed2.mk.in
 # -----------------------------------------------------------------------------
+
 
 
 
