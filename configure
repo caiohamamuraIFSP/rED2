@@ -624,6 +624,15 @@ SHLIB
 AROUT
 ARFLAGS
 AR
+HDF5_LIBS
+HDF5_CFLAGS
+MPI_LIBS
+MPI_CFLAGS
+hdf5_fortran_LIBS
+hdf5_fortran_CFLAGS
+PKG_CONFIG_LIBDIR
+PKG_CONFIG_PATH
+PKG_CONFIG
 ac_ct_FC
 FCFLAGS
 FC
@@ -688,7 +697,16 @@ LDFLAGS
 LIBS
 CPPFLAGS
 FC
-FCFLAGS'
+FCFLAGS
+PKG_CONFIG
+PKG_CONFIG_PATH
+PKG_CONFIG_LIBDIR
+hdf5_fortran_CFLAGS
+hdf5_fortran_LIBS
+MPI_CFLAGS
+MPI_LIBS
+HDF5_CFLAGS
+HDF5_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1319,6 +1337,19 @@ Some influential environment variables:
               you have headers in a nonstandard directory <include dir>
   FC          Fortran compiler command
   FCFLAGS     Fortran compiler flags
+  PKG_CONFIG  path to pkg-config utility
+  PKG_CONFIG_PATH
+              directories to add to pkg-config's search path
+  PKG_CONFIG_LIBDIR
+              path overriding pkg-config's built-in search path
+  hdf5_fortran_CFLAGS
+              C compiler flags for hdf5_fortran, overriding pkg-config
+  hdf5_fortran_LIBS
+              linker flags for hdf5_fortran, overriding pkg-config
+  MPI_CFLAGS  C compiler flags for MPI, overriding pkg-config
+  MPI_LIBS    linker flags for MPI, overriding pkg-config
+  HDF5_CFLAGS C compiler flags for HDF5, overriding pkg-config
+  HDF5_LIBS   linker flags for HDF5, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -2198,15 +2229,57 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+# -----------------------------------------------------------------------------
+# rED2 configure script
+# -----------------------------------------------------------------------------
+# This script prepares the ED2 vendored sources for compilation as an R package.
+#
+# Main responsibilities:
+#   - discover R build settings;
+#   - optionally switch to Intel oneAPI on Windows;
+#   - locate or build HDF5 Fortran support;
+#   - optionally configure MPI support;
+#   - emit either the Unix makefile fragment or the Windows UCRT makefile.
+#
+# Important user-facing environment variables:
+#   RED2_WINDOWS_TOOLCHAIN=intel  Use Intel ifx/icx + MSVC tooling on Windows.
+#   RED2_ENABLE_MPI=yes|no       Default for --enable-mpi.
+#   RED2_HDF5_ROOT=PATH          HDF5 installation prefix to use first.
+#   RED2_CC, RED2_FC             Override selected C/Fortran compilers.
+#   RED2_CFLAGS, RED2_FCFLAGS    Override default compiler flags.
+#   RED2_AR, RED2_ARFLAGS        Override archive tool and flags.
+#   RED2_VS_ROOT, RED2_VS_BIN    Override Visual Studio discovery.
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Small shell helpers
+# -----------------------------------------------------------------------------
+
+# Convert a path to MSYS/Unix style when cygpath is available.
+
+
+# Convert a path to Windows mixed style, for example C:/path/to/file.
+
+
+# Prepend a semicolon-separated Windows path value to an environment variable.
+# Used for LIB and INCLUDE, which MSVC/Intel tools read from the environment.
+
+
+# Append a colon-separated directory to TOOLPATH, preserving an existing value.
+
+
+# Append a directory to PATH and also expose it through TOOLPATH for makefiles.
+
+
+# -----------------------------------------------------------------------------
+# R build defaults
+# -----------------------------------------------------------------------------
+
 MAIN="edmain"
-R_HOME_SH=`cygpath -u "$R_HOME" 2>/dev/null || printf '%s' "$R_HOME"`
-R_BIN="${R_HOME_SH}/bin/R"
-R_SCRIPT="${R_HOME_SH}/bin/Rscript"
-os_name=`"${R_SCRIPT}" -e "cat(Sys.info()['sysname'])"`
-R_FC=`"${R_BIN}" CMD config FC`
-R_LAPACK_LIBS=`"${R_BIN}" CMD config LAPACK_LIBS`
-R_BLAS_LIBS=`"${R_BIN}" CMD config BLAS_LIBS`
 SHLIB="rED2.so"
+ED2_DIR="src/ED2"
+output_files="src/ed2.mk"
+
 RED2_WINDOWS_TOOLCHAIN=${RED2_WINDOWS_TOOLCHAIN:-}
 TOOLPATH=""
 TOOL_ENV=""
@@ -2214,231 +2287,264 @@ TOOL_LIB=""
 TOOL_INCLUDE=""
 TOOL_DLL_DIR=""
 red2_windows_intel_requested=no
+red2_windows_intel=no
+red2_intel_compiler=no
+have_hdf5=no
+
+R_HOME_SH=`cygpath -u "$R_HOME" 2>/dev/null || printf '%s' "$R_HOME"`
+R_BIN="${R_HOME_SH}/bin/R"
+R_SCRIPT="${R_HOME_SH}/bin/Rscript"
+
+os_name=`"${R_SCRIPT}" -e "cat(Sys.info()['sysname'])"`
+R_FC=`"${R_BIN}" CMD config FC`
+R_LAPACK_LIBS=`"${R_BIN}" CMD config LAPACK_LIBS`
+R_BLAS_LIBS=`"${R_BIN}" CMD config BLAS_LIBS`
+
+# -----------------------------------------------------------------------------
+# Visual Studio / MSVC discovery for Intel oneAPI on Windows
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+# Compiler defaults
+# -----------------------------------------------------------------------------
 
 if test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"
 then :
+  red2_windows_intel_requested=yes
 
-    red2_windows_intel_requested=yes
-    red2_vs_bin=${RED2_VS_BIN:-}
-    red2_vs_root=${RED2_VS_ROOT:-}
+   red2_vs_bin=${RED2_VS_BIN:-}
+   red2_vs_root=${RED2_VS_ROOT:-}
 
-    if test -z "$red2_vs_root"
+   # First try vswhere, which is the most reliable way to find modern VS.
+   if test -z "$red2_vs_root"
 then :
-
-        for red2_vswhere in "/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" "/c/Program Files/Microsoft Visual Studio/Installer/vswhere.exe"; do
-          if test -f "$red2_vswhere"
+  for red2_vswhere in \
+        "/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" \
+        "/c/Program Files/Microsoft Visual Studio/Installer/vswhere.exe"; do
+        if test -f "$red2_vswhere"
 then :
-
-              red2_vs_root=`"$red2_vswhere" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2>/dev/null | tr -d '\r'`
-              if test -n "$red2_vs_root"
+  red2_vs_root=`"$red2_vswhere" -latest -products '*' \
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
+            -property installationPath 2>/dev/null | tr -d '\r'`
+           if test -n "$red2_vs_root"
 then :
   break
 fi
-
 fi
-        done
-
+      done
 fi
-    if test -z "$red2_vs_root"
+
+   # Fallback: scan common Visual Studio install roots for vcvars64.bat.
+   if test -z "$red2_vs_root"
 then :
-
-        for red2_candidate in "/c/Program Files/Microsoft Visual Studio/"*/* "/c/Program Files (x86)/Microsoft Visual Studio/"*/*; do
-          if test -f "$red2_candidate/VC/Auxiliary/Build/vcvars64.bat"
+  for red2_candidate in \
+        "/c/Program Files/Microsoft Visual Studio/"*/* \
+        "/c/Program Files (x86)/Microsoft Visual Studio/"*/*; do
+        if test -f "$red2_candidate/VC/Auxiliary/Build/vcvars64.bat"
 then :
   red2_vs_root="$red2_candidate"
 fi
-        done
-
+      done
 fi
-
-    if test -n "$red2_vs_root" -a -f "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"
+   if test -n "$red2_vs_root" -a -f "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"
 then :
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: importing Visual Studio build environment from $red2_vs_root" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: importing Visual Studio build environment from $red2_vs_root" >&5
 printf "%s\n" "$as_me: importing Visual Studio build environment from $red2_vs_root" >&6;}
-        red2_vcvars=`cygpath -w "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat" 2>/dev/null || printf '%s' "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"`
-        red2_env_file=conftest.red2.vcvars.env
-        cmd.exe //d //s //c "call \"$red2_vcvars\" >NUL && set" > "$red2_env_file" 2>/dev/null
-        red2_imported_lib=`sed -n 's/^LlIiBb=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
-        red2_imported_include=`sed -n 's/^IiNnCcLlUuDdEe=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
-        red2_imported_vctools=`sed -n 's/^VvCcTtOoOoLlSsIiNnSsTtAaLlLlDdIiRr=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
-        rm -f "$red2_env_file"
-        if test -n "$red2_imported_lib"
-then :
+      red2_vcvars=`cygpath -m "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat" 2>/dev/null || printf '%s' "$red2_vs_root/VC/Auxiliary/Build/vcvars64.bat"`
+      red2_env_file=conftest.red2.vcvars.env
 
-            if test -n "$LIB"
+      # Capture vcvars64.bat output so the Unix shell can import LIB/INCLUDE.
+      cmd.exe //d //s //c "call \"$red2_vcvars\" >NUL && set" > "$red2_env_file" 2>/dev/null
+
+      red2_imported_lib=`sed -n 's/^LlIiBb=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+      red2_imported_include=`sed -n 's/^IiNnCcLlUuDdEe=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+      red2_imported_vctools=`sed -n 's/^VvCcTtOoOoLlSsIiNnSsTtAaLlLlDdIiRr=//p' "$red2_env_file" | head -n 1 | tr -d '\r'`
+      rm -f "$red2_env_file"
+
+      if test -n "$red2_imported_lib"
 then :
-  LIB="${red2_imported_lib};${LIB}"
+  if test -n "$LIB"
+then :
+  LIB="$red2_imported_lib;$LIB"
 else $as_nop
   LIB="$red2_imported_lib"
 fi
-            export LIB
-
+   export LIB
 fi
-        if test -n "$red2_imported_include"
+      if test -n "$red2_imported_include"
 then :
-
-            if test -n "$INCLUDE"
+  if test -n "$INCLUDE"
 then :
-  INCLUDE="${red2_imported_include};${INCLUDE}"
+  INCLUDE="$red2_imported_include;$INCLUDE"
 else $as_nop
   INCLUDE="$red2_imported_include"
 fi
-            export INCLUDE
-
+   export INCLUDE
 fi
-        if test -z "$red2_vs_bin" -a -n "$red2_imported_vctools"
+      if test -z "$red2_vs_bin" -a -n "$red2_imported_vctools"
 then :
   red2_vs_bin="${red2_imported_vctools}/bin/Hostx64/x64"
 fi
-
 fi
-
-    if test -z "$red2_vs_bin" -a -n "$red2_vs_root"
+   # If vcvars did not give us a compiler bin directory, infer one from VS root.
+   if test -z "$red2_vs_bin" -a -n "$red2_vs_root"
 then :
-
-        red2_msvc_dir=`ls -d "$red2_vs_root"/VC/Tools/MSVC/* 2>/dev/null | tail -n 1`
-        if test -n "$red2_msvc_dir" -a -d "$red2_msvc_dir/bin/Hostx64/x64"
+  red2_msvc_dir=`ls -d "$red2_vs_root"/VC/Tools/MSVC/* 2>/dev/null | tail -n 1`
+      if test -n "$red2_msvc_dir" -a -d "$red2_msvc_dir/bin/Hostx64/x64"
 then :
   red2_vs_bin="$red2_msvc_dir/bin/Hostx64/x64"
 fi
-
 fi
 
-    if test -z "$red2_vs_bin" -a -n "$VCToolsInstallDir" -a -d "${VCToolsInstallDir}/bin/Hostx64/x64"
+   # Last fallback: use VCToolsInstallDir if already present in the environment.
+   if test -z "$red2_vs_bin" -a -n "$VCToolsInstallDir" -a -d "${VCToolsInstallDir}/bin/Hostx64/x64"
 then :
   red2_vs_bin="${VCToolsInstallDir}/bin/Hostx64/x64"
 fi
 
-    if test -n "$red2_vs_bin" -a -d "$red2_vs_bin"
+   if test -n "$red2_vs_bin" -a -d "$red2_vs_bin"
 then :
-
-        red2_vs_bin=`cygpath -u "$red2_vs_bin" 2>/dev/null || printf '%s' "$red2_vs_bin"`
-        TOOLPATH="$red2_vs_bin"
-
+  red2_vs_bin=`cygpath -u "$red2_vs_bin" 2>/dev/null || printf '%s' "$red2_vs_bin"`
+      TOOLPATH="$red2_vs_bin"
 fi
-    red2_msvc_root=`printf '%s\n' "$red2_vs_bin" | sed 's|/bin/Hostx64/x64$||'`
-    if test -n "$red2_msvc_root" -a -d "$red2_msvc_root/lib/x64"
+   # Add MSVC library/include directories explicitly. This helps when vcvars was
+   # not available or was only partially imported.
+   red2_msvc_root=`printf '%s\n' "$red2_vs_bin" | sed 's|/bin/Hostx64/x64$||'`
+   if test -n "$red2_msvc_root" -a -d "$red2_msvc_root/lib/x64"
 then :
-
-        red2_msvc_lib=`cygpath -m "$red2_msvc_root/lib/x64" 2>/dev/null || printf '%s' "$red2_msvc_root/lib/x64"`
-        red2_msvc_include=`cygpath -m "$red2_msvc_root/include" 2>/dev/null || printf '%s' "$red2_msvc_root/include"`
-        if test -n "$LIB"
+  red2_msvc_lib=`cygpath -m "$red2_msvc_root/lib/x64" 2>/dev/null || printf '%s' "$red2_msvc_root/lib/x64"`
+      red2_msvc_include=`cygpath -m "$red2_msvc_root/include" 2>/dev/null || printf '%s' "$red2_msvc_root/include"`
+      if test -n "$LIB"
 then :
-  LIB="${red2_msvc_lib};${LIB}"
+  LIB="$red2_msvc_lib;$LIB"
 else $as_nop
   LIB="$red2_msvc_lib"
 fi
-        if test -n "$INCLUDE"
+   export LIB
+      if test -n "$INCLUDE"
 then :
-  INCLUDE="${red2_msvc_include};${INCLUDE}"
+  INCLUDE="$red2_msvc_include;$INCLUDE"
 else $as_nop
   INCLUDE="$red2_msvc_include"
 fi
-
+   export INCLUDE
 fi
-    red2_sdk_lib=`ls -d "/c/Program Files (x86)/Windows Kits/10/Lib/"* 2>/dev/null | tail -n 1`
-    red2_sdk_include=`ls -d "/c/Program Files (x86)/Windows Kits/10/Include/"* 2>/dev/null | tail -n 1`
-    if test -n "$red2_sdk_lib" -a -d "$red2_sdk_lib/ucrt/x64" -a -d "$red2_sdk_lib/um/x64"
-then :
 
-        red2_sdk_ucrt=`cygpath -m "$red2_sdk_lib/ucrt/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/ucrt/x64"`
-        red2_sdk_um=`cygpath -m "$red2_sdk_lib/um/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/um/x64"`
-        if test -n "$LIB"
+   # Add Windows SDK libraries/includes needed by MSVC/Intel linking.
+   red2_sdk_lib=`ls -d "/c/Program Files (x86)/Windows Kits/10/Lib/"* 2>/dev/null | tail -n 1`
+   red2_sdk_include=`ls -d "/c/Program Files (x86)/Windows Kits/10/Include/"* 2>/dev/null | tail -n 1`
+
+   if test -n "$red2_sdk_lib" -a -d "$red2_sdk_lib/ucrt/x64" -a -d "$red2_sdk_lib/um/x64"
 then :
-  LIB="${red2_sdk_ucrt};${red2_sdk_um};${LIB}"
+  red2_sdk_ucrt=`cygpath -m "$red2_sdk_lib/ucrt/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/ucrt/x64"`
+      red2_sdk_um=`cygpath -m "$red2_sdk_lib/um/x64" 2>/dev/null || printf '%s' "$red2_sdk_lib/um/x64"`
+      if test -n "$LIB"
+then :
+  LIB="$red2_sdk_ucrt;$red2_sdk_um;$LIB"
 else $as_nop
-  LIB="${red2_sdk_ucrt};${red2_sdk_um}"
+  LIB="$red2_sdk_ucrt;$red2_sdk_um"
+fi
+   export LIB
 fi
 
-fi
-    if test -n "$red2_sdk_include" -a -d "$red2_sdk_include/ucrt"
+   if test -n "$red2_sdk_include" -a -d "$red2_sdk_include/ucrt"
 then :
-
-        red2_sdk_include_ucrt=`cygpath -m "$red2_sdk_include/ucrt" 2>/dev/null || printf '%s' "$red2_sdk_include/ucrt"`
-        red2_sdk_include_um=`cygpath -m "$red2_sdk_include/um" 2>/dev/null || printf '%s' "$red2_sdk_include/um"`
-        red2_sdk_include_shared=`cygpath -m "$red2_sdk_include/shared" 2>/dev/null || printf '%s' "$red2_sdk_include/shared"`
-        red2_sdk_include_winrt=`cygpath -m "$red2_sdk_include/winrt" 2>/dev/null || printf '%s' "$red2_sdk_include/winrt"`
-        if test -n "$INCLUDE"
+  red2_sdk_include_ucrt=`cygpath -m "$red2_sdk_include/ucrt" 2>/dev/null || printf '%s' "$red2_sdk_include/ucrt"`
+      red2_sdk_include_um=`cygpath -m "$red2_sdk_include/um" 2>/dev/null || printf '%s' "$red2_sdk_include/um"`
+      red2_sdk_include_shared=`cygpath -m "$red2_sdk_include/shared" 2>/dev/null || printf '%s' "$red2_sdk_include/shared"`
+      red2_sdk_include_winrt=`cygpath -m "$red2_sdk_include/winrt" 2>/dev/null || printf '%s' "$red2_sdk_include/winrt"`
+      if test -n "$INCLUDE"
 then :
-  INCLUDE="${red2_sdk_include_ucrt};${red2_sdk_include_um};${red2_sdk_include_shared};${red2_sdk_include_winrt};${INCLUDE}"
+  INCLUDE="$red2_sdk_include_ucrt;$red2_sdk_include_um;$red2_sdk_include_shared;$red2_sdk_include_winrt;$INCLUDE"
 else $as_nop
-  INCLUDE="${red2_sdk_include_ucrt};${red2_sdk_include_um};${red2_sdk_include_shared};${red2_sdk_include_winrt}"
+  INCLUDE="$red2_sdk_include_ucrt;$red2_sdk_include_um;$red2_sdk_include_shared;$red2_sdk_include_winrt"
 fi
-
+   export INCLUDE
 fi
-    export LIB
-    export INCLUDE
+   red2_ifx_path=`command -v ifx 2>/dev/null || true`
 
-    red2_ifx_path=`command -v ifx 2>/dev/null || true`
-    if test -z "$red2_ifx_path"
+   if test -z "$red2_ifx_path"
 then :
-
-        for red2_candidate in "/c/Program Files (x86)/Intel/oneAPI/compiler/"*/bin "/c/Program Files/Intel/oneAPI/compiler/"*/bin; do
-          if test -f "$red2_candidate/ifx.exe"
+  for red2_candidate in \
+        "/c/Program Files (x86)/Intel/oneAPI/compiler/"*/bin \
+        "/c/Program Files/Intel/oneAPI/compiler/"*/bin; do
+        if test -f "$red2_candidate/ifx.exe"
 then :
   red2_ifx_path="$red2_candidate/ifx.exe"
 fi
-        done
-
+      done
 fi
-    red2_ifx_bin=`dirname "${red2_ifx_path:-ifx}"`
-    if test -d "$red2_ifx_bin"
-then :
 
-        red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
-        red2_ifx_root=`dirname "$red2_ifx_bin"`
-        red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
-        if test -n "$LIB"
+   red2_ifx_bin=`dirname "${red2_ifx_path:-ifx}"`
+
+   if test -d "$red2_ifx_bin"
 then :
-  LIB="${red2_ifx_lib};${LIB}"
+  red2_ifx_bin=`cygpath -u "$red2_ifx_bin" 2>/dev/null || printf '%s' "$red2_ifx_bin"`
+      red2_ifx_root=`dirname "$red2_ifx_bin"`
+      red2_ifx_lib=`cygpath -m "$red2_ifx_root/lib" 2>/dev/null || printf '%s' "$red2_ifx_root/lib"`
+      if test -n "$LIB"
+then :
+  LIB="$red2_ifx_lib;$LIB"
 else $as_nop
   LIB="$red2_ifx_lib"
 fi
-        export LIB
-        PATH="${red2_ifx_bin}:$PATH"
-        if test -n "$TOOLPATH"
+   export LIB
+      PATH="$red2_ifx_bin:$PATH"
+   if test -n "$TOOLPATH"
 then :
-  TOOLPATH="${TOOLPATH}:${red2_ifx_bin}"
+  TOOLPATH="$TOOLPATH:$red2_ifx_bin"
 else $as_nop
   TOOLPATH="$red2_ifx_bin"
 fi
-
 fi
 
-    CC=${RED2_CC:-icx}
-    FC=${RED2_FC:-ifx}
-    CFLAGS=${RED2_CFLAGS:--O2}
-    FCFLAGS=${RED2_FCFLAGS:--O2 -fpp}
-    if test -n "$RED2_AR"
+   CC=${RED2_CC:-icx}
+   FC=${RED2_FC:-ifx}
+   CFLAGS=${RED2_CFLAGS:--O2}
+   FCFLAGS=${RED2_FCFLAGS:--O2 -fpp}
+
+   # Intel/Windows static libraries are built with lib.exe, not Unix ar.
+   if test -n "$RED2_AR"
 then :
   AR="$RED2_AR"
 else $as_nop
-
-        if test -n "$red2_vs_bin" -a -f "${red2_vs_bin}/lib.exe"
+  if test -n "$red2_vs_bin" -a -f "${red2_vs_bin}/lib.exe"
 then :
   AR=`cygpath -m "${red2_vs_bin}/lib.exe" 2>/dev/null || printf '%s' "${red2_vs_bin}/lib.exe"`
 else $as_nop
   AR=lib.exe
 fi
-
 fi
-    AR="\"$AR\""
-    ARFLAGS=${RED2_ARFLAGS:--nologo}
-    AROUT="-out:"
-    TOOL_LIB="$LIB"
-    TOOL_INCLUDE="$INCLUDE"
+   AR="\"$AR\""
+   ARFLAGS=${RED2_ARFLAGS:--nologo}
+   AROUT="-out:"
 
+   TOOL_LIB="$LIB"
+   TOOL_INCLUDE="$INCLUDE"
 else $as_nop
-
-    : ${CC:=`"${R_BIN}" CMD config CC`}
-    : ${CFLAGS:=`"${R_BIN}" CMD config CFLAGS`}
-    : ${FCFLAGS:=`"${R_BIN}" CMD config FCFLAGS`}
-    : ${AR:=ar}
-    : ${ARFLAGS:=rcs}
-    AROUT=""
-
+  : ${CC:=`"${R_BIN}" CMD config CC`}
+   : ${CFLAGS:=`"${R_BIN}" CMD config CFLAGS`}
+   : ${FCFLAGS:=`"${R_BIN}" CMD config FCFLAGS`}
+   : ${AR:=ar}
+   : ${ARFLAGS:=rcs}
+   AROUT=""
 fi
+
+# -----------------------------------------------------------------------------
+# User options
+# -----------------------------------------------------------------------------
 
 # Check whether --enable-mpi was given.
 if test ${enable_mpi+y}
@@ -2456,7 +2562,9 @@ case $enable_mpi in #(
     as_fn_error $? "--enable-mpi expects yes or no" "$LINENO" 5 ;;
 esac
 
-ED2_DIR="src/ED2"
+# -----------------------------------------------------------------------------
+# ED2 source layout and platform-specific build products
+# -----------------------------------------------------------------------------
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: preparing ED2 v.2.2.0 sources" >&5
 printf "%s\n" "$as_me: preparing ED2 v.2.2.0 sources" >&6;}
@@ -2465,30 +2573,31 @@ then :
   as_fn_error $? "vendored ED2 v.2.2.0 sources were not found under ${ED2_DIR}" "$LINENO" 5
 fi
 
-#AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
-#(cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
+# Dependency regeneration is intentionally left disabled. Enable this block only
+# when the vendored ED2 dependency makefiles need to be rebuilt from source.
+# AC_MSG_NOTICE([regenerating ED2 source and dependency makefiles])
+# (cd src && sh build_dependency.sh) || AC_MSG_ERROR([failed to regenerate ED2 dependency makefiles])
 
 CFLAGS="${CFLAGS} -IED2/ED/src/include"
 
-output_files="src/ed2.mk"
 if test "x$os_name" = "xWindows"
 then :
-
-    CFLAGS="${CFLAGS} -D_WIN32"
-    if test "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"
+  CFLAGS="${CFLAGS} -D_WIN32"
+   if test "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"
 then :
   FCFLAGS="${FCFLAGS} -D_WIN32 -DGNU"
 else $as_nop
   FCFLAGS="${FCFLAGS} -D_WIN32 -DGNU -mcmodel=medium"
 fi
 
-    MAIN="edmain.exe"
-    output_files="src/Makefile.ucrt"
-    SHLIB="rED2.dll"
-
-
+   MAIN="edmain.exe"
+   SHLIB="rED2.dll"
+   output_files="src/Makefile.ucrt"
 fi
 
+# -----------------------------------------------------------------------------
+# Autoconf compiler discovery
+# -----------------------------------------------------------------------------
 
 
 
@@ -3592,6 +3701,7 @@ ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
+
 if test "x$enable_mpi" = "xyes" -a "x$os_name" != "xWindows"
 then :
   ac_ext=${ac_fc_srcext-f}
@@ -4050,12 +4160,141 @@ ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $FC" >&5
 printf "%s\n" "$FC" >&6; }
-PKG_PROG_PKG_CONFIG()
 
-red2_windows_intel=no
-red2_intel_compiler=no
+
+
+
+
+
+
+
+if test "x$ac_cv_env_PKG_CONFIG_set" != "xset"; then
+	if test -n "$ac_tool_prefix"; then
+  # Extract the first word of "${ac_tool_prefix}pkg-config", so it can be a program name with args.
+set dummy ${ac_tool_prefix}pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_PKG_CONFIG="$PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+PKG_CONFIG=$ac_cv_path_PKG_CONFIG
+if test -n "$PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $PKG_CONFIG" >&5
+printf "%s\n" "$PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+fi
+if test -z "$ac_cv_path_PKG_CONFIG"; then
+  ac_pt_PKG_CONFIG=$PKG_CONFIG
+  # Extract the first word of "pkg-config", so it can be a program name with args.
+set dummy pkg-config; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_path_ac_pt_PKG_CONFIG+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  case $ac_pt_PKG_CONFIG in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ac_pt_PKG_CONFIG="$ac_pt_PKG_CONFIG" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_path_ac_pt_PKG_CONFIG="$as_dir$ac_word$ac_exec_ext"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ac_pt_PKG_CONFIG=$ac_cv_path_ac_pt_PKG_CONFIG
+if test -n "$ac_pt_PKG_CONFIG"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_pt_PKG_CONFIG" >&5
+printf "%s\n" "$ac_pt_PKG_CONFIG" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+  if test "x$ac_pt_PKG_CONFIG" = x; then
+    PKG_CONFIG=""
+  else
+    case $cross_compiling:$ac_tool_warned in
+yes:)
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: using cross tools not prefixed with host triplet" >&5
+printf "%s\n" "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
+ac_tool_warned=yes ;;
+esac
+    PKG_CONFIG=$ac_pt_PKG_CONFIG
+  fi
+else
+  PKG_CONFIG="$ac_cv_path_PKG_CONFIG"
+fi
+
+fi
+if test -n "$PKG_CONFIG"; then
+	_pkg_min_version=0.9.0
+	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking pkg-config is at least version $_pkg_min_version" >&5
+printf %s "checking pkg-config is at least version $_pkg_min_version... " >&6; }
+	if $PKG_CONFIG --atleast-pkgconfig-version $_pkg_min_version; then
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+	else
+		{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+		PKG_CONFIG=""
+	fi
+fi
+
 FC_PROG=`printf '%s\n' "$FC" | sed 's/ .*//'`
 FC_BASE=`basename "$FC_PROG" 2>/dev/null || printf '%s' "$FC_PROG"`
+
 if test "x$os_name" = "xWindows"
 then :
   case $FC_BASE in #(
@@ -4071,6 +4310,7 @@ case $FC_BASE in #(
   *) :
      ;;
 esac
+
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: selected C compiler: $CC" >&5
 printf "%s\n" "$as_me: selected C compiler: $CC" >&6;}
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: selected Fortran compiler: $FC" >&5
@@ -4086,367 +4326,614 @@ then :
   TOOL_ENV="MSYS2_ARG_CONV_EXCL='*'"
 fi
 
-if test "x$os_name" = "xWindows"
-then :
-
-    if test "x$red2_windows_intel" != "xyes"
+# R's BLAS/LAPACK linker flags are needed for non-Intel Windows builds.
+if test "x$os_name" = "xWindows" -a "x$red2_windows_intel" != "xyes"
 then :
   LIBS="${LIBS} ${R_LAPACK_LIBS} ${R_BLAS_LIBS}"
 fi
 
+# -----------------------------------------------------------------------------
+# HDF5 discovery
+# -----------------------------------------------------------------------------
 
-fi
 
-have_hdf5=no
+
+
+
+
+
+
+
+
+
 if test "x$red2_windows_intel" = "xyes"
 then :
+  red2_hdf5_root=${RED2_HDF5_ROOT:-}
 
-    red2_hdf5_root=${RED2_HDF5_ROOT:-}
-
-    if test -z "$red2_hdf5_root"
+   # Prefer RED2_HDF5_ROOT. Otherwise try vcpkg's Intel triplet installation.
+   if test -z "$red2_hdf5_root"
 then :
-
-        red2_vcpkg=${VCPKG_ROOT:-}
-        if test -z "$red2_vcpkg"
+  red2_vcpkg=${VCPKG_ROOT:-}
+      if test -z "$red2_vcpkg"
 then :
-
-            red2_vcpkg_cmd=`command -v vcpkg 2>/dev/null || command -v vcpkg.exe 2>/dev/null || true`
-            if test -n "$red2_vcpkg_cmd"
+  red2_vcpkg_cmd=`command -v vcpkg 2>/dev/null || command -v vcpkg.exe 2>/dev/null || true`
+         if test -n "$red2_vcpkg_cmd"
 then :
   red2_vcpkg=`dirname "$red2_vcpkg_cmd"`
 fi
-
 fi
-        if test -n "$red2_vcpkg"
+      if test -n "$red2_vcpkg"
 then :
   red2_hdf5_root="${red2_vcpkg}/installed/x64-windows-ifx"
 fi
-
 fi
 
-    if test -z "$red2_hdf5_root" -o ! -f "$red2_hdf5_root/include/hdf5.mod" -o ! -f "$red2_hdf5_root/lib/hdf5_fortran.lib"
+   # Build HDF5 on demand if an Intel-compatible package is not already present.
+   if test -z "$red2_hdf5_root" \
+       -o ! -f "$red2_hdf5_root/include/hdf5.mod" \
+       -o ! -f "$red2_hdf5_root/lib/hdf5_fortran.lib"
 then :
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: building Intel-compatible HDF5 with vcpkg" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: building Intel-compatible HDF5 with vcpkg" >&5
 printf "%s\n" "$as_me: building Intel-compatible HDF5 with vcpkg" >&6;}
-        red2_overlay=`cygpath -m "$PWD/tools/vcpkg-triplets" 2>/dev/null || printf '%s' "$PWD/tools/vcpkg-triplets"`
-        red2_hdf5_root=`MSYS2_ARG_CONV_EXCL='*' sh tools/ensure_vcpkg_hdf5.sh x64-windows-ifx "$red2_overlay"` || as_fn_error $? "failed to build HDF5 with vcpkg" "$LINENO" 5
-
+      red2_overlay=`cygpath -m "$PWD/tools/vcpkg-triplets" 2>/dev/null || printf '%s' "$PWD/tools/vcpkg-triplets"`
+      red2_hdf5_root=`MSYS2_ARG_CONV_EXCL='*' sh tools/ensure_vcpkg_hdf5.sh x64-windows-ifx "$red2_overlay"` \
+        || as_fn_error $? "failed to build HDF5 with vcpkg" "$LINENO" 5
 fi
 
-    if test -n "$red2_hdf5_root"
+   if test -n "$red2_hdf5_root"
 then :
-
-        red2_hdf5_root=`cygpath -m "$red2_hdf5_root" 2>/dev/null || printf '%s' "$red2_hdf5_root"`
-        if test -f "$red2_hdf5_root/include/hdf5.mod" -a -f "$red2_hdf5_root/lib/hdf5_fortran.lib"
+  red2_hdf5_root=`cygpath -m "$red2_hdf5_root" 2>/dev/null || printf '%s' "$red2_hdf5_root"`
+      if test -f "$red2_hdf5_root/include/hdf5.mod" \
+          -a -f "$red2_hdf5_root/lib/hdf5_fortran.lib"
 then :
-
-            hdf5_fortran_CFLAGS="-I\"$red2_hdf5_root/include\""
-            hdf5_fortran_LIBS="/link /LIBPATH:\"$red2_ifx_lib\" /LIBPATH:\"$red2_hdf5_root/lib\" hdf5_fortran.lib hdf5_f90cstub.lib hdf5.lib z.lib szip.lib aec.lib"
-            if test -d "$red2_hdf5_root/bin"
+  hdf5_fortran_CFLAGS="-I\"$red2_hdf5_root/include\""
+         hdf5_fortran_LIBS="/link /LIBPATH:\"$red2_ifx_lib\" /LIBPATH:\"$red2_hdf5_root/lib\" hdf5_fortran.lib hdf5_f90cstub.lib hdf5.lib z.lib szip.lib aec.lib"
+         if test -d "$red2_hdf5_root/bin"
 then :
   TOOL_DLL_DIR="$red2_hdf5_root/bin"
 fi
-            have_hdf5=yes
-
+         have_hdf5=yes
+fi
+fi
 fi
 
-fi
-
-fi
-
-if test "x$have_hdf5" != "xyes" -a "x$os_name" != "xWindows" -a "x$red2_intel_compiler" = "xyes"
+if test "x$have_hdf5" != "xyes" \
+    -a "x$os_name" != "xWindows" \
+    -a "x$red2_intel_compiler" = "xyes"
 then :
+  red2_hdf5_root=${RED2_HDF5_ROOT:-}
 
-    red2_hdf5_root=${RED2_HDF5_ROOT:-}
-
-    if test -z "$red2_hdf5_root" -o ! -f "$red2_hdf5_root/include/hdf5.mod"
+   if test -z "$red2_hdf5_root" -o ! -f "$red2_hdf5_root/include/hdf5.mod"
 then :
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: building Intel-compatible HDF5 with vcpkg" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: building Intel-compatible HDF5 with vcpkg" >&5
 printf "%s\n" "$as_me: building Intel-compatible HDF5 with vcpkg" >&6;}
-        red2_hdf5_root=`sh tools/ensure_vcpkg_hdf5.sh x64-linux-ifx "$PWD/tools/vcpkg-triplets"` || as_fn_error $? "failed to build HDF5 with vcpkg" "$LINENO" 5
-
+      red2_hdf5_root=`sh tools/ensure_vcpkg_hdf5.sh x64-linux-ifx "$PWD/tools/vcpkg-triplets"` \
+        || as_fn_error $? "failed to build HDF5 with vcpkg" "$LINENO" 5
 fi
-
 fi
 
 if test "x$have_hdf5" != "xyes" -a "x$os_name" != "xWindows"
 then :
+  red2_hdf5_root=${RED2_HDF5_ROOT:-${red2_hdf5_root:-}}
 
-    red2_hdf5_root=${RED2_HDF5_ROOT:-${red2_hdf5_root:-}}
-
-    if test -n "$red2_hdf5_root"
+   if test -n "$red2_hdf5_root"
 then :
-
-        if test -f "$red2_hdf5_root/include/hdf5.mod" -a -f "$red2_hdf5_root/lib/libhdf5_fortran.so"
+  if test -f "$red2_hdf5_root/include/hdf5.mod" \
+         -a -f "$red2_hdf5_root/lib/libhdf5_fortran.so"
 then :
-
-            hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
-            hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5 -Wl,-rpath,'\$\$ORIGIN'"
-            TOOL_DLL_DIR="$red2_hdf5_root/lib"
-            have_hdf5=yes
-
+  hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
+        hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5 -Wl,-rpath,'\$\$ORIGIN'"
+        TOOL_DLL_DIR="$red2_hdf5_root/lib"
+        have_hdf5=yes
 else $as_nop
-
-            if test -f "$red2_hdf5_root/include/hdf5.mod" -a -f "$red2_hdf5_root/lib/libhdf5_fortran.a"
+  if test -f "$red2_hdf5_root/include/hdf5.mod" \
+           -a -f "$red2_hdf5_root/lib/libhdf5_fortran.a"
 then :
-
-                hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
-                hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5"
-                have_hdf5=yes
-
+  hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
+          hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5"
+          have_hdf5=yes
 fi
-
 fi
-
 fi
-
 fi
 
 if test "x$have_hdf5" != "xyes"
 then :
-  PKG_CHECK_MODULES(hdf5_fortran, hdf5_fortran, have_hdf5=yes, have_hdf5=no)
+
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for hdf5_fortran" >&5
+printf %s "checking for hdf5_fortran... " >&6; }
+
+if test -n "$hdf5_fortran_CFLAGS"; then
+    pkg_cv_hdf5_fortran_CFLAGS="$hdf5_fortran_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_fortran\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_fortran") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_hdf5_fortran_CFLAGS=`$PKG_CONFIG --cflags "hdf5_fortran" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
 fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$hdf5_fortran_LIBS"; then
+    pkg_cv_hdf5_fortran_LIBS="$hdf5_fortran_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5_fortran\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5_fortran") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_hdf5_fortran_LIBS=`$PKG_CONFIG --libs "hdf5_fortran" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                hdf5_fortran_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5_fortran" 2>&1`
+        else
+                hdf5_fortran_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5_fortran" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$hdf5_fortran_PKG_ERRORS" >&5
+
+        have_hdf5=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        have_hdf5=no
+else
+        hdf5_fortran_CFLAGS=$pkg_cv_hdf5_fortran_CFLAGS
+        hdf5_fortran_LIBS=$pkg_cv_hdf5_fortran_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        have_hdf5=yes
+fi
+fi
+
+# -----------------------------------------------------------------------------
+# MPI discovery
+# -----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
 
 if test "x$enable_mpi" = "xyes"
 then :
-
-    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: configuring ED2 with MPI support" >&5
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: configuring ED2 with MPI support" >&5
 printf "%s\n" "$as_me: configuring ED2 with MPI support" >&6;}
-    have_mpi=no
+   have_mpi=no
 
-    if test "x$os_name" = "xWindows"
+   if test "x$os_name" = "xWindows"
 then :
-
-        if test "x$red2_windows_intel" = "xyes"
+  if test "x$red2_windows_intel" = "xyes"
 then :
+  red2_mpi_root=${I_MPI_ROOT:-}
 
-            red2_mpi_root=${I_MPI_ROOT:-}
-
-            if test -z "$red2_mpi_root"
+   # If I_MPI_ROOT is absent, infer the oneAPI root from ifx and scan for MPI.
+   if test -z "$red2_mpi_root"
 then :
-
-                red2_ifx_path=`command -v ifx 2>/dev/null || true`
-                if test -n "$red2_ifx_path"
+  red2_ifx_path=`command -v ifx 2>/dev/null || true`
+      if test -n "$red2_ifx_path"
 then :
-
-                    red2_oneapi_root=`dirname "$red2_ifx_path"`
-                    red2_oneapi_root=`dirname "$red2_oneapi_root"`
-                    red2_oneapi_root=`dirname "$red2_oneapi_root"`
-                    red2_oneapi_root=`dirname "$red2_oneapi_root"`
-                    if test -d "$red2_oneapi_root/mpi"
+  red2_oneapi_root=`dirname "$red2_ifx_path"`
+         red2_oneapi_root=`dirname "$red2_oneapi_root"`
+         red2_oneapi_root=`dirname "$red2_oneapi_root"`
+         red2_oneapi_root=`dirname "$red2_oneapi_root"`
+         if test -d "$red2_oneapi_root/mpi"
 then :
-
-                        red2_mpi_candidate=`ls -d "$red2_oneapi_root"/mpi/* 2>/dev/null | sort | tail -n 1`
-                        if test -n "$red2_mpi_candidate"
+  red2_mpi_candidate=`ls -d "$red2_oneapi_root"/mpi/* 2>/dev/null | sort | tail -n 1`
+            if test -n "$red2_mpi_candidate"
 then :
   red2_mpi_root="$red2_mpi_candidate"
 fi
-
+fi
+fi
 fi
 
-fi
-
-fi
-
-            if test -n "$red2_mpi_root"
+   if test -n "$red2_mpi_root"
 then :
-
-                red2_mpi_root=`cygpath -m "$red2_mpi_root" 2>/dev/null || printf '%s' "$red2_mpi_root"`
-                if test -f "$red2_mpi_root/include/mpi/mpi.mod" -a -f "$red2_mpi_root/lib/impi.lib"
+  red2_mpi_root=`cygpath -m "$red2_mpi_root" 2>/dev/null || printf '%s' "$red2_mpi_root"`
+      if test -f "$red2_mpi_root/include/mpi/mpi.mod" \
+          -a -f "$red2_mpi_root/lib/impi.lib"
 then :
-
-                    MPI_CFLAGS="-I\"$red2_mpi_root/include\" -I\"$red2_mpi_root/include/mpi\""
-                    MPI_LIBS="/link /LIBPATH:\"$red2_mpi_root/lib\" impi.lib"
-                    red2_mpi_bin=`cygpath -u "$red2_mpi_root/bin" 2>/dev/null || printf '%s' "$red2_mpi_root/bin"`
-                    if test -n "$TOOLPATH"
+  MPI_CFLAGS="-I\"$red2_mpi_root/include\" -I\"$red2_mpi_root/include/mpi\""
+         MPI_LIBS="/link /LIBPATH:\"$red2_mpi_root/lib\" impi.lib"
+         red2_mpi_bin=`cygpath -u "$red2_mpi_root/bin" 2>/dev/null || printf '%s' "$red2_mpi_root/bin"`
+         if test -n "$TOOLPATH"
 then :
   TOOLPATH="$TOOLPATH:$red2_mpi_bin"
 else $as_nop
   TOOLPATH="$red2_mpi_bin"
 fi
-                    have_mpi=yes
-
+         have_mpi=yes
 fi
-
 fi
-
-else $as_nop
-  PKG_CHECK_MODULES(MPI, msmpi, have_mpi=yes, have_mpi=no)
-fi
-
-        if test "x$have_mpi" != "xyes"
-then :
-
-            FC_PROG=`printf '%s\n' "$FC" | sed 's/ .*//'`
-            FC_PATH=`command -v "$FC_PROG" 2>/dev/null || true`
-
-            if test -n "$FC_PATH"
-then :
-
-                MPI_PREFIX=`dirname "$FC_PATH"`
-                MPI_PREFIX=`dirname "$MPI_PREFIX"`
-
-                if test -f "$MPI_PREFIX/include/mpi.mod" -a -f "$MPI_PREFIX/lib/libmsmpi.a"
-then :
-
-                    MPI_CFLAGS="-I$MPI_PREFIX/include"
-                    MPI_LIBS="$MPI_PREFIX/lib/libmsmpi.a"
-                    have_mpi=yes
-
-fi
-
-fi
-
-fi
-
 else $as_nop
 
-        if test "x$red2_intel_compiler" = "xyes"
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for msmpi" >&5
+printf %s "checking for msmpi... " >&6; }
+
+if test -n "$MPI_CFLAGS"; then
+    pkg_cv_MPI_CFLAGS="$MPI_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"msmpi\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "msmpi") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_MPI_CFLAGS=`$PKG_CONFIG --cflags "msmpi" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$MPI_LIBS"; then
+    pkg_cv_MPI_LIBS="$MPI_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"msmpi\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "msmpi") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_MPI_LIBS=`$PKG_CONFIG --libs "msmpi" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                MPI_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "msmpi" 2>&1`
+        else
+                MPI_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "msmpi" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$MPI_PKG_ERRORS" >&5
+
+        have_mpi=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        have_mpi=no
+else
+        MPI_CFLAGS=$pkg_cv_MPI_CFLAGS
+        MPI_LIBS=$pkg_cv_MPI_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        have_mpi=yes
+fi
+
+   # Fallback for MSYS/MinGW-style MPI installations next to the Fortran wrapper.
+   if test "x$have_mpi" != "xyes"
 then :
+  FC_PROG=`printf '%s\n' "$FC" | sed 's/ .*//'`
+      FC_PATH=`command -v "$FC_PROG" 2>/dev/null || true`
 
-            red2_mpi_root=${I_MPI_ROOT:-}
-
-            if test -z "$red2_mpi_root"
+      if test -n "$FC_PATH"
 then :
+  MPI_PREFIX=`dirname "$FC_PATH"`
+         MPI_PREFIX=`dirname "$MPI_PREFIX"`
 
-                red2_mpi_candidate=`ls -d /opt/intel/oneapi/mpi/* 2>/dev/null | sort | tail -n 1`
-                if test -n "$red2_mpi_candidate"
+         if test -f "$MPI_PREFIX/include/mpi.mod" \
+             -a -f "$MPI_PREFIX/lib/libmsmpi.a"
+then :
+  MPI_CFLAGS="-I$MPI_PREFIX/include"
+            MPI_LIBS="$MPI_PREFIX/lib/libmsmpi.a"
+            have_mpi=yes
+fi
+fi
+fi
+fi
+else $as_nop
+  if test "x$red2_intel_compiler" = "xyes"
+then :
+  red2_mpi_root=${I_MPI_ROOT:-}
+
+   if test -z "$red2_mpi_root"
+then :
+  red2_mpi_candidate=`ls -d /opt/intel/oneapi/mpi/* 2>/dev/null | sort | tail -n 1`
+      if test -n "$red2_mpi_candidate"
 then :
   red2_mpi_root="$red2_mpi_candidate"
 fi
-
 fi
 
-            if test -n "$red2_mpi_root"
+   if test -n "$red2_mpi_root"
 then :
-
-                if test -f "$red2_mpi_root/include/mpif.h" -a -f "$red2_mpi_root/lib/libmpi.so"
+  if test -f "$red2_mpi_root/include/mpif.h" \
+         -a -f "$red2_mpi_root/lib/libmpi.so"
 then :
-
-                    MPI_CFLAGS="-I$red2_mpi_root/include"
-                    MPI_LIBS="-L$red2_mpi_root/lib -lmpifort -lmpi"
-                    if test -n "$TOOLPATH"
+  MPI_CFLAGS="-I$red2_mpi_root/include"
+        MPI_LIBS="-L$red2_mpi_root/lib -lmpifort -lmpi"
+        if test -n "$TOOLPATH"
 then :
   TOOLPATH="$TOOLPATH:$red2_mpi_root/bin"
 else $as_nop
   TOOLPATH="$red2_mpi_root/bin"
 fi
-                    have_mpi=yes
-
+        have_mpi=yes
 fi
-
 fi
-
 fi
-
-        if test "x$have_mpi" != "xyes"
+      if test "x$have_mpi" != "xyes"
 then :
+  # Prefer MPI compiler-wrapper introspection when available.
+   MPI_FC=`command -v mpifort 2>/dev/null || command -v mpif90 2>/dev/null || true`
 
-            MPI_FC=`command -v mpifort 2>/dev/null || command -v mpif90 2>/dev/null || true`
-
-            if test -n "$MPI_FC"
+   if test -n "$MPI_FC"
 then :
+  MPI_CFLAGS=`$MPI_FC --showme:compile 2>/dev/null || true`
+      MPI_LIBS=`$MPI_FC --showme:link 2>/dev/null || true`
 
-                MPI_CFLAGS=`$MPI_FC --showme:compile 2>/dev/null || true`
-                MPI_LIBS=`$MPI_FC --showme:link 2>/dev/null || true`
-
-                if test -n "$MPI_LIBS"
+      if test -n "$MPI_LIBS"
 then :
   have_mpi=yes
 fi
-
 fi
 
-fi
-
-        if test "x$have_mpi" != "xyes"
+   if test "x$have_mpi" != "xyes"
 then :
 
-            PKG_CHECK_MODULES(MPI, mpi-fort, have_mpi=yes, have_mpi=no)
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for mpi-fort" >&5
+printf %s "checking for mpi-fort... " >&6; }
 
+if test -n "$MPI_CFLAGS"; then
+    pkg_cv_MPI_CFLAGS="$MPI_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"mpi-fort\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "mpi-fort") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_MPI_CFLAGS=`$PKG_CONFIG --cflags "mpi-fort" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$MPI_LIBS"; then
+    pkg_cv_MPI_LIBS="$MPI_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"mpi-fort\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "mpi-fort") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_MPI_LIBS=`$PKG_CONFIG --libs "mpi-fort" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
 fi
 
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                MPI_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "mpi-fort" 2>&1`
+        else
+                MPI_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "mpi-fort" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$MPI_PKG_ERRORS" >&5
+
+        have_mpi=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        have_mpi=no
+else
+        MPI_CFLAGS=$pkg_cv_MPI_CFLAGS
+        MPI_LIBS=$pkg_cv_MPI_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        have_mpi=yes
+fi
+fi
+fi
 fi
 
-    if test "x$have_mpi" = "xyes"
+   if test "x$have_mpi" = "xyes"
 then :
-
-        if test "x$red2_intel_compiler" = "xyes"
+  if test "x$red2_intel_compiler" = "xyes"
 then :
   FCFLAGS="${FCFLAGS} ${MPI_CFLAGS} -DRAMS_MPI"
 else $as_nop
   FCFLAGS="${FCFLAGS} ${MPI_CFLAGS} -DRAMS_MPI -fallow-invalid-boz -fallow-argument-mismatch -w"
 fi
-        LIBS="${LIBS} ${MPI_LIBS}"
-
+      LIBS="${LIBS} ${MPI_LIBS}"
 else $as_nop
   as_fn_error $? "MPI support was requested but MPI headers/libraries were not found" "$LINENO" 5
 fi
-
 fi
+
+# -----------------------------------------------------------------------------
+# Final HDF5 link flags and validation
+# -----------------------------------------------------------------------------
 
 if test "x$os_name" = "xWindows" -a "x$have_hdf5" = "xyes"
 then :
-
-    hdf5_libdir=`$PKG_CONFIG --variable=libdir hdf5_fortran 2>/dev/null`
-    if test -n "$hdf5_libdir"
+  hdf5_libdir=`$PKG_CONFIG --variable=libdir hdf5_fortran 2>/dev/null`
+   if test -n "$hdf5_libdir"
 then :
-
-        if test -f "$hdf5_libdir/libz.a"
+  if test -f "$hdf5_libdir/libz.a"
 then :
   hdf5_fortran_LIBS=`printf '%s\n' "$hdf5_fortran_LIBS" | sed "s|-lz|$hdf5_libdir/libz.a|g"`
 fi
-        if test -f "$hdf5_libdir/libsz.a"
+      if test -f "$hdf5_libdir/libsz.a"
 then :
   hdf5_fortran_LIBS=`printf '%s\n' "$hdf5_fortran_LIBS" | sed "s|-lsz|$hdf5_libdir/libsz.a|g"`
 fi
-        if test -f "$hdf5_libdir/libaec.a"
+      if test -f "$hdf5_libdir/libaec.a"
 then :
   hdf5_fortran_LIBS=`printf '%s\n' "$hdf5_fortran_LIBS" | sed "s|-laec|$hdf5_libdir/libaec.a|g"`
 fi
-
 fi
-
 fi
 
 
 if test "x$have_hdf5" = "xyes"
 then :
-
-    LIBS="${LIBS} ${hdf5_fortran_LIBS} ${MPILIBS}"
-    FCFLAGS="${FCFLAGS} ${hdf5_fortran_CFLAGS}"
-    if test "x$red2_windows_intel" = "xyes"
+  LIBS="${LIBS} ${hdf5_fortran_LIBS} ${MPILIBS}"
+   FCFLAGS="${FCFLAGS} ${hdf5_fortran_CFLAGS}"
+   if test "x$red2_windows_intel" = "xyes"
 then :
   CFLAGS="${CFLAGS} -D_CRT_SECURE_NO_WARNINGS"
 fi
-
 else $as_nop
 
-    PKG_CHECK_MODULES(HDF5, hdf5, have_hdf5=yes, have_hdf5=no)
+pkg_failed=no
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for hdf5" >&5
+printf %s "checking for hdf5... " >&6; }
 
-    if test "x$have_hdf5" = "xyes"
+if test -n "$HDF5_CFLAGS"; then
+    pkg_cv_HDF5_CFLAGS="$HDF5_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_CFLAGS=`$PKG_CONFIG --cflags "hdf5" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$HDF5_LIBS"; then
+    pkg_cv_HDF5_LIBS="$HDF5_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"hdf5\""; } >&5
+  ($PKG_CONFIG --exists --print-errors "hdf5") 2>&5
+  ac_status=$?
+  printf "%s\n" "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
+  test $ac_status = 0; }; then
+  pkg_cv_HDF5_LIBS=`$PKG_CONFIG --libs "hdf5" 2>/dev/null`
+		      test "x$?" != "x0" && pkg_failed=yes
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+                HDF5_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors --cflags --libs "hdf5" 2>&1`
+        else
+                HDF5_PKG_ERRORS=`$PKG_CONFIG --print-errors --cflags --libs "hdf5" 2>&1`
+        fi
+        # Put the nasty error message in config.log where it belongs
+        echo "$HDF5_PKG_ERRORS" >&5
+
+        have_hdf5=no
+elif test $pkg_failed = untried; then
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+        have_hdf5=no
+else
+        HDF5_CFLAGS=$pkg_cv_HDF5_CFLAGS
+        HDF5_LIBS=$pkg_cv_HDF5_LIBS
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+printf "%s\n" "yes" >&6; }
+        have_hdf5=yes
+fi
+
+   if test "x$have_hdf5" = "xyes"
 then :
+  LIBS="${LIBS} ${HDF5_LIBS} -lhdf5 -lhdf5_fortran"
+      FCFLAGS="${FCFLAGS} ${HDF5_CFLAGS}"
 
-        LIBS="${LIBS} ${HDF5_LIBS} -lhdf5 -lhdf5_fortran"
-        FCFLAGS="${FCFLAGS} ${HDF5_CFLAGS}"
-
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for HDF5 support in Fortran" >&5
+      { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for HDF5 support in Fortran" >&5
 printf %s "checking for HDF5 support in Fortran... " >&6; }
-        ac_ext=${ac_fc_srcext-f}
+      ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
-
-        cat > conftest.$ac_ext <<_ACEOF
+      cat > conftest.$ac_ext <<_ACEOF
       program main
 
-              use hdf5
-              integer :: hdferr
-              call h5open_f(hdferr)
-              call h5close_f(hdferr)
+            use hdf5
+            integer :: hdferr
+            call h5open_f(hdferr)
+            call h5close_f(hdferr)
 
       end
 _ACEOF
@@ -4454,32 +4941,27 @@ if ac_fn_fc_try_link "$LINENO"
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-        HDF5_OK=yes
+       HDF5_OK=yes
 else $as_nop
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
-        HDF5_OK=no
+       HDF5_OK=no
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.beam \
     conftest$ac_exeext conftest.$ac_ext
-
-        ac_ext=${ac_fc_srcext-f}
+      ac_ext=${ac_fc_srcext-f}
 ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
 ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_fc_compiler_gnu
 
-
 else $as_nop
   have_hdf5=no
 fi
-
-
 fi
 
 if test "x$have_hdf5" = "xno"
 then :
-
-      as_fn_error $? "
+  as_fn_error $? "
 HDF5 library not found!
 
 Please install HDF5 library and try again:
@@ -4489,9 +4971,12 @@ Please install HDF5 library and try again:
     CentOS: sudo yum install hdf5-devel
     MacOS: brew install hdf5
     Windows MinGW: pacman -S mingw-w64-x86_64-hdf5
-      " "$LINENO" 5
-
+  " "$LINENO" 5
 fi
+
+# -----------------------------------------------------------------------------
+# Substitutions consumed by src/ed2.mk.in
+# -----------------------------------------------------------------------------
 
 
 
