@@ -26,7 +26,17 @@ Sys.setenv(RED2_ENABLE_MPI = "yes")
 pak::pak("caiohamamuraIFSP/rED2")
 ```
 
-For Intel compilers on Windows:
+For Intel compilers on Windows, install Intel oneAPI and MSVC build tools first.
+The Base Toolkit provides `icx`; the HPC Toolkit provides the Fortran compiler
+`ifx`, which ED2 needs.
+
+```powershell
+winget install --id Intel.OneAPI.BaseToolkit -e
+winget install --id Intel.OneAPI.HPCToolkit -e
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --override "--wait --quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+Then install from R:
 
 ```r
 Sys.setenv(
@@ -35,8 +45,9 @@ Sys.setenv(
 pak::pak("caiohamamuraIFSP/rED2")
 ```
 
-If Intel oneAPI is installed somewhere other than the default location, add its
-compiler `bin` directory first:
+The installer finds the default oneAPI, Visual Studio, Windows SDK, and vcpkg
+locations. If oneAPI is installed somewhere else, add its compiler `bin`
+directory:
 
 ```r
 oneapi_bin <- "C:/path/to/Intel/oneAPI/compiler/latest/bin"
@@ -51,12 +62,38 @@ Sys.setenv(
 pak::pak("caiohamamuraIFSP/rED2")
 ```
 
-For Intel compilers on Linux/WSL:
+For Intel compilers on Ubuntu or WSL, install oneAPI using Intel's apt
+repository:
+
+```sh
+wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | sudo tee /usr/share/keyrings/oneapi-archive-keyring.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+sudo apt update
+sudo apt install intel-oneapi-compiler-dpcpp-cpp intel-oneapi-compiler-fortran git cmake ninja-build pkg-config build-essential
+```
+
+Then import oneAPI's environment inside R before installing:
 
 ```r
+oneapi_env <- system2(
+  "bash",
+  c("-lc", shQuote("source /opt/intel/oneapi/setvars.sh >/dev/null && env")),
+  stdout = TRUE
+)
+stopifnot(length(oneapi_env) > 0)
+oneapi_env <- strsplit(oneapi_env, "=", fixed = TRUE)
+oneapi_env <- oneapi_env[lengths(oneapi_env) >= 2]
+do.call(Sys.setenv, stats::setNames(
+  lapply(oneapi_env, \(x) paste(x[-1], collapse = "=")),
+  vapply(oneapi_env, `[[`, character(1), 1)
+))
+
 Sys.setenv(CC = "icx", CXX = "icpx", FC = "ifx", F77 = "ifx")
 pak::pak("caiohamamuraIFSP/rED2")
 ```
+
+Use the same oneAPI environment block before `rED2::edInit()` in a fresh Linux
+session.
 
 To use an existing HDF5 build instead of vcpkg:
 

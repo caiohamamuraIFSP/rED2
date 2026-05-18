@@ -295,7 +295,8 @@ AS_IF([test "x$have_hdf5" != "xyes" -a "x$os_name" != "xWindows"],
         AS_IF([test -f "$red2_hdf5_root/include/hdf5.mod" -a -f "$red2_hdf5_root/lib/libhdf5_fortran.so"],
           [
             hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
-            hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5"
+            hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5 -Wl,-rpath,'\$\$ORIGIN'"
+            TOOL_DLL_DIR="$red2_hdf5_root/lib"
             have_hdf5=yes
           ],
           [

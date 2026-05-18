@@ -4410,7 +4410,8 @@ then :
 then :
 
             hdf5_fortran_CFLAGS="-I$red2_hdf5_root/include"
-            hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5"
+            hdf5_fortran_LIBS="-L$red2_hdf5_root/lib -lhdf5_fortran -lhdf5 -Wl,-rpath,'\$\$ORIGIN'"
+            TOOL_DLL_DIR="$red2_hdf5_root/lib"
             have_hdf5=yes
 
 else $as_nop
