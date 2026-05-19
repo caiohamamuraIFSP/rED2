@@ -54,8 +54,8 @@ if (use_mpi) {
   }
   if (.Platform$OS.type == "windows") {
     Sys.setenv(
-      I_MPI_FABRICS = Sys.getenv("I_MPI_FABRICS", "shm"),
-      I_MPI_OFI_PROVIDER = Sys.getenv("I_MPI_OFI_PROVIDER", "shm")
+      I_MPI_FABRICS = Sys.getenv("I_MPI_FABRICS", "shm:tcp"),
+      I_MPI_OFI_PROVIDER = Sys.getenv("I_MPI_OFI_PROVIDER", "tcp")
     )
   }
   cat("MPI launcher:", launcher, "\n")
