@@ -163,6 +163,8 @@ jobs:
           job-config: ${{ matrix.config.job-config }}
       - name: Smoke-test ED2 binary
         shell: Rscript {0}
+        env:
+          RED2_ENABLE_MPI: ${{ matrix.mpi == 'mpi' && 'yes' || 'no' }}
         run: |
           source("tools/smoke_test_binary_package.R")
       - name: Save release binary package
@@ -288,6 +290,8 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
       - name: Smoke-test ED2 binary
         shell: Rscript {0}
+        env:
+          RED2_ENABLE_MPI: ${{ matrix.mpi == 'mpi' && 'yes' || 'no' }}
         run: |
           source("tools/smoke_test_binary_package.R")
       - name: Save release binary package
