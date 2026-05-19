@@ -44,7 +44,19 @@ exe <- normalizePath(exe[[1]], winslash = "/", mustWork = TRUE)
 if (.Platform$OS.type != "windows") Sys.chmod(exe, "755")
 
 cat("ED2 binary:", exe, "\n")
-out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
+
+use_mpi <- tolower(Sys.getenv("RED2_ENABLE_MPI")) %in% c("1", "true", "yes", "y", "on")
+if (use_mpi) {
+  launcher <- Sys.which(if (.Platform$OS.type == "windows") "mpiexec" else "mpirun")
+  if (!nzchar(launcher) && .Platform$OS.type != "windows") launcher <- Sys.which("mpiexec")
+  if (!nzchar(launcher)) {
+    stop("RED2_ENABLE_MPI=yes, but no MPI launcher was found in PATH.", call. = FALSE)
+  }
+  cat("MPI launcher:", launcher, "\n")
+  out <- suppressWarnings(system2(launcher, c("-n", "2", exe), stdout = TRUE, stderr = TRUE))
+} else {
+  out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
+}
 text <- paste(out, collapse = "\n")
 cat(text, sep = "\n")
 

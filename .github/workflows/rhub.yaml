@@ -84,6 +84,17 @@ jobs:
           echo "CXX=icpx" >> "$GITHUB_ENV"
           echo "FC=ifx" >> "$GITHUB_ENV"
           echo "F77=ifx" >> "$GITHUB_ENV"
+      - name: Install MPI launcher
+        if: ${{ matrix.mpi == 'mpi' && matrix.config.label != 'intel' }}
+        run: |
+          if command -v apt-get >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y mpich
+          elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y mpich
+          elif command -v yum >/dev/null 2>&1; then
+            yum install -y mpich
+          fi
       - uses: r-hub/actions/run-check@v1
         env:
           RED2_ENABLE_MPI: ${{ matrix.mpi == 'mpi' && 'yes' || 'no' }}
@@ -162,12 +173,19 @@ jobs:
           if ($mpiRoot) {
             Add-Content -Path $env:GITHUB_ENV -Value "I_MPI_ROOT=$($mpiRoot.FullName)"
             Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $mpiRoot.FullName 'bin')
+          } elseif ("${{ matrix.mpi }}" -eq "mpi") {
+            throw "Intel MPI was not found after oneAPI installation; mpiexec is required for the MPI smoke test."
           }
           Add-Content -Path $env:GITHUB_ENV -Value 'CC=icx'
           Add-Content -Path $env:GITHUB_ENV -Value 'CXX=icpx'
           Add-Content -Path $env:GITHUB_ENV -Value 'FC=ifx'
           Add-Content -Path $env:GITHUB_ENV -Value 'F77=ifx'
           Add-Content -Path $env:GITHUB_ENV -Value 'RED2_WINDOWS_TOOLCHAIN=intel'
+      - name: Install MPI launcher on macOS
+        if: ${{ matrix.mpi == 'mpi' && startsWith(matrix.config.label, 'm1-san') }}
+        run: |
+          brew install mpich || brew upgrade mpich
+          echo "PATH=$(brew --prefix mpich)/bin:${PATH}" >> "$GITHUB_ENV"
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
