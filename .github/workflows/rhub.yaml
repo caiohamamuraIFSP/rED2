@@ -151,7 +151,7 @@ jobs:
         run: |
           source("tools/smoke_test_binary_package.R")
       - name: Save release binary package
-        if: ${{ github.ref_type == 'tag' && contains(fromJSON('["intel","windows"]'), matrix.config.label) }}
+        if: ${{ github.ref_type == 'tag' }}
         shell: Rscript {0}
         run: |
           dir.create("release-assets", showWarnings = FALSE)
@@ -172,7 +172,7 @@ jobs:
           file.copy(archive, dest, overwrite = TRUE)
           cat("Prepared release asset:", dest, "\n")
       - uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type == 'tag' && contains(fromJSON('["intel","windows"]'), matrix.config.label) }}
+        if: ${{ github.ref_type == 'tag' }}
         with:
           name: red2-binary-${{ matrix.config.label }}-${{ matrix.mpi }}
           path: release-assets/*
@@ -276,7 +276,7 @@ jobs:
         run: |
           source("tools/smoke_test_binary_package.R")
       - name: Save release binary package
-        if: ${{ github.ref_type == 'tag' && contains(fromJSON('["intel","windows"]'), matrix.config.label) }}
+        if: ${{ github.ref_type == 'tag' }}
         shell: Rscript {0}
         run: |
           dir.create("release-assets", showWarnings = FALSE)
@@ -297,7 +297,7 @@ jobs:
           file.copy(archive, dest, overwrite = TRUE)
           cat("Prepared release asset:", dest, "\n")
       - uses: actions/upload-artifact@v4
-        if: ${{ github.ref_type == 'tag' && contains(fromJSON('["intel","windows"]'), matrix.config.label) }}
+        if: ${{ github.ref_type == 'tag' }}
         with:
           name: red2-binary-${{ matrix.config.label }}-${{ matrix.mpi }}
           path: release-assets/*
@@ -321,3 +321,4 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes ""
           gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
+
