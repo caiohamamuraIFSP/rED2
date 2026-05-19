@@ -64,6 +64,33 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Smoke-test ED2 binary
+        shell: Rscript {0}
+        run: |
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak")
+
+          lib <- file.path(tempdir(), "red2-rhub-smoke-lib")
+          unlink(lib, recursive = TRUE, force = TRUE)
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+
+          pak::pak("local::.", lib = lib, ask = FALSE, upgrade = FALSE)
+
+          exe_name <- if (.Platform$OS.type == "windows") "edmain.exe" else "edmain"
+          exe <- system.file("bin", exe_name, package = "rED2", lib.loc = lib)
+          cat("ED2 binary:", exe, "\n")
+          stopifnot(nzchar(exe), file.exists(exe))
+
+          out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
+          text <- paste(out, collapse = "\n")
+          cat(text, sep = "\n")
+
+          if (!grepl("ED2IN", text, fixed = TRUE)) {
+            stop("edmain did not reach the expected ED2 runtime error for missing ED2IN.", call. = FALSE)
+          }
+          if (grepl("libifcoremd|libifportmd|cannot open shared object|DLL|not found", text, ignore.case = TRUE)) {
+            stop("edmain failed before ED2 runtime because a runtime library was missing.", call. = FALSE)
+          }
 
   other-platforms:
     needs: setup
@@ -93,3 +120,30 @@ jobs:
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
+      - name: Smoke-test ED2 binary
+        shell: Rscript {0}
+        run: |
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak")
+
+          lib <- file.path(tempdir(), "red2-rhub-smoke-lib")
+          unlink(lib, recursive = TRUE, force = TRUE)
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+
+          pak::pak("local::.", lib = lib, ask = FALSE, upgrade = FALSE)
+
+          exe_name <- if (.Platform$OS.type == "windows") "edmain.exe" else "edmain"
+          exe <- system.file("bin", exe_name, package = "rED2", lib.loc = lib)
+          cat("ED2 binary:", exe, "\n")
+          stopifnot(nzchar(exe), file.exists(exe))
+
+          out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
+          text <- paste(out, collapse = "\n")
+          cat(text, sep = "\n")
+
+          if (!grepl("ED2IN", text, fixed = TRUE)) {
+            stop("edmain did not reach the expected ED2 runtime error for missing ED2IN.", call. = FALSE)
+          }
+          if (grepl("libifcoremd|libifportmd|cannot open shared object|DLL|not found", text, ignore.case = TRUE)) {
+            stop("edmain failed before ED2 runtime because a runtime library was missing.", call. = FALSE)
+          }
