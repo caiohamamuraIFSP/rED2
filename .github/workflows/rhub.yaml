@@ -339,20 +339,26 @@ jobs:
             tmp="$(mktemp -d)"
             unzip -q "$archive" -d "$tmp"
 
-            if [ -d "$tmp/rED2" ]; then
+            if [ -f "$tmp/DESCRIPTION" ]; then
               rm -rf "$tmp"
               continue
             fi
 
-            mapfile -t roots < <(find "$tmp" -mindepth 1 -maxdepth 1 -type d)
-            if [ "${#roots[@]}" -eq 1 ] && [ -d "${roots[0]}/rED2" ]; then
+            mapfile -t descriptions < <(find "$tmp" -mindepth 2 -name DESCRIPTION -type f)
+            if [ "${#descriptions[@]}" -eq 1 ]; then
+              package_root="$(dirname "${descriptions[0]}")"
               fixed="$tmp/fixed.zip"
               (
-                cd "${roots[0]}"
-                zip -qr "$fixed" rED2
+                cd "$package_root"
+                zip -qr "$fixed" .
               )
               mv "$fixed" "$archive"
               echo "Normalized $archive"
+            fi
+
+            if ! unzip -Z1 "$archive" | grep -qx DESCRIPTION; then
+              echo "No root DESCRIPTION found in $archive after normalization." >&2
+              exit 1
             fi
 
             rm -rf "$tmp"
