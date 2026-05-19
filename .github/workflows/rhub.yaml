@@ -193,8 +193,26 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
-          winget install --id Intel.OneAPI.BaseToolkit -e --accept-package-agreements --accept-source-agreements
-          winget install --id Intel.OneAPI.HPCToolkit -e --accept-package-agreements --accept-source-agreements
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $wingetLog = Join-Path $env:RUNNER_TEMP 'winget-oneapi-hpc.log'
+
+          if (-not (Get-Command ifx -ErrorAction SilentlyContinue) -or
+              -not (Get-Command icx -ErrorAction SilentlyContinue) -or
+              -not (Get-Command mpiexec -ErrorAction SilentlyContinue)) {
+            winget install --id Intel.OneAPI.HPCToolkit -e `
+              --silent `
+              --disable-interactivity `
+              --accept-package-agreements `
+              --accept-source-agreements `
+              --override "--silent --eula accept -p=NEED_VS2019_INTEGRATION=0 -p=NEED_VS2022_INTEGRATION=0" `
+              *> $wingetLog
+          }
+
+          if (Test-Path $wingetLog) {
+            Get-Content $wingetLog -Tail 80
+          }
+
           $compilerRoot = Get-ChildItem 'C:\Program Files (x86)\Intel\oneAPI\compiler' -Directory | Sort-Object Name -Descending | Select-Object -First 1
           $compilerBin = Join-Path $compilerRoot.FullName 'bin'
           Add-Content -Path $env:GITHUB_PATH -Value $compilerBin
