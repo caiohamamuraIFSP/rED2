@@ -68,7 +68,7 @@ jobs:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
       - name: Install Intel oneAPI on Linux
-        if: ${{ matrix.config.label == 'intel' }}
+        if: ${{ contains(matrix.config.label, 'intel') }}
         run: |
           if ! command -v icx >/dev/null 2>&1 || ! command -v ifx >/dev/null 2>&1; then
             if command -v apt-get >/dev/null 2>&1; then
@@ -113,7 +113,7 @@ jobs:
             fi
           fi
       - name: Configure Intel compilers
-        if: ${{ matrix.config.label == 'intel' }}
+        if: ${{ contains(matrix.config.label, 'intel') }}
         run: |
           if [ -f /opt/intel/oneapi/setvars.sh ]; then
             set +u
@@ -124,6 +124,21 @@ jobs:
             if [ -n "${I_MPI_ROOT:-}" ]; then
               echo "I_MPI_ROOT=$I_MPI_ROOT" >> "$GITHUB_ENV"
             fi
+          fi
+          compiler_bin=$(dirname "$(find /opt/intel/oneapi/compiler -path '*/bin/icx' -type f 2>/dev/null | sort | tail -n 1)")
+          mpi_bin=$(dirname "$(find /opt/intel/oneapi/mpi -path '*/bin/mpirun' -type f 2>/dev/null | sort | tail -n 1)")
+          test -n "$compiler_bin"
+          ln -sf "$compiler_bin/icx" /usr/local/bin/icx
+          ln -sf "$compiler_bin/icpx" /usr/local/bin/icpx
+          ln -sf "$compiler_bin/ifx" /usr/local/bin/ifx
+          if [ -n "$mpi_bin" ]; then
+            ln -sf "$mpi_bin/mpirun" /usr/local/bin/mpirun
+            ln -sf "$mpi_bin/mpiexec" /usr/local/bin/mpiexec
+            echo "I_MPI_ROOT=$(dirname "$mpi_bin")" >> "$GITHUB_ENV"
+          fi
+          echo "$compiler_bin" >> "$GITHUB_PATH"
+          if [ -n "$mpi_bin" ]; then
+            echo "$mpi_bin" >> "$GITHUB_PATH"
           fi
           echo "CC=icx" >> "$GITHUB_ENV"
           echo "CXX=icpx" >> "$GITHUB_ENV"
