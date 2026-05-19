@@ -2563,12 +2563,10 @@ else case e in #(
   e) : ${CC:=`"${R_BIN}" CMD config CC`}
    : ${CFLAGS:=`"${R_BIN}" CMD config CFLAGS`}
    : ${FCFLAGS:=`"${R_BIN}" CMD config FCFLAGS`}
-   # Strip sanitizer flags inherited from R.  On CRAN ASAN/UBSAN check
-   # machines, R CMD config CFLAGS includes -fsanitize=address,undefined.
-   # The ED2 C source is compiled with those flags (embedding ASAN runtime
-   # calls in object files), but the Fortran linker (gfortran) does not
-   # pass -fsanitize to the link step, producing unresolved ASAN/UBSAN
-   # symbols.  Stripping them from CFLAGS is the simplest fix.
+   # Strip sanitizer flags inherited from R-devel check machines. ED2 builds
+   # a standalone Fortran-linked executable; sanitizer-instrumented C objects
+   # would require ASAN/UBSAN runtime libraries that gfortran does not add.
+   CC=`printf '%s' "$CC" | sed 's/-fsanitize=[^ ]*//g'`
    CFLAGS=`printf '%s' "$CFLAGS" | sed 's/-fsanitize=[^ ]*//g'`
    : ${AR:=ar}
    : ${ARFLAGS:=rcs}
