@@ -332,6 +332,31 @@ jobs:
           pattern: red2-binary-*
           path: release-assets
           merge-multiple: true
+      - name: Normalize Windows binary package layout
+        run: |
+          shopt -s nullglob
+          for archive in release-assets/*.zip; do
+            tmp="$(mktemp -d)"
+            unzip -q "$archive" -d "$tmp"
+
+            if [ -d "$tmp/rED2" ]; then
+              rm -rf "$tmp"
+              continue
+            fi
+
+            mapfile -t roots < <(find "$tmp" -mindepth 1 -maxdepth 1 -type d)
+            if [ "${#roots[@]}" -eq 1 ] && [ -d "${roots[0]}/rED2" ]; then
+              fixed="$tmp/fixed.zip"
+              (
+                cd "${roots[0]}"
+                zip -qr "$fixed" rED2
+              )
+              mv "$fixed" "$archive"
+              echo "Normalized $archive"
+            fi
+
+            rm -rf "$tmp"
+          done
       - name: Upload binary packages to release
         env:
           GH_TOKEN: ${{ github.token }}
