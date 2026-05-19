@@ -174,9 +174,21 @@ jobs:
         if: ${{ startsWith(matrix.config.label, 'm1-san') }}
         run: |
           brew update
-          brew install hdf5 || brew upgrade hdf5
-          echo "PKG_CONFIG_PATH=$(brew --prefix hdf5)/lib/pkgconfig:${PKG_CONFIG_PATH}" >> "$GITHUB_ENV"
-          echo "PATH=$(brew --prefix hdf5)/bin:${PATH}" >> "$GITHUB_ENV"
+          brew install cmake || brew upgrade cmake
+          if [ "${{ matrix.mpi }}" = "mpi" ]; then
+            brew install open-mpi || brew upgrade open-mpi
+            echo "PATH=$(brew --prefix open-mpi)/bin:${PATH}" >> "$GITHUB_ENV"
+            export PATH="$(brew --prefix open-mpi)/bin:${PATH}"
+            export HDF5_FC=mpifort
+            hdf5_prefix="$RUNNER_TEMP/hdf5-rED2-mpi"
+          else
+            export HDF5_FC=/opt/gfortran/bin/gfortran
+            export HDF5_FFLAGS="-arch arm64"
+            hdf5_prefix="$RUNNER_TEMP/hdf5-rED2-serial"
+          fi
+          hdf5_prefix=$(sh tools/build_hdf5_fortran_macos.sh "$hdf5_prefix" | tail -n 1)
+          echo "RED2_HDF5_ROOT=$hdf5_prefix" >> "$GITHUB_ENV"
+          echo "DYLD_LIBRARY_PATH=$hdf5_prefix/lib:${DYLD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
       - name: Install Intel oneAPI on Windows
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
@@ -201,8 +213,8 @@ jobs:
       - name: Install MPI launcher on macOS
         if: ${{ matrix.mpi == 'mpi' && startsWith(matrix.config.label, 'm1-san') }}
         run: |
-          brew install mpich || brew upgrade mpich
-          echo "PATH=$(brew --prefix mpich)/bin:${PATH}" >> "$GITHUB_ENV"
+          brew install open-mpi || brew upgrade open-mpi
+          echo "PATH=$(brew --prefix open-mpi)/bin:${PATH}" >> "$GITHUB_ENV"
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
