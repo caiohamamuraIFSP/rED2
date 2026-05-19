@@ -67,6 +67,23 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Configure Intel compilers
+        if: ${{ matrix.config.label == 'intel' }}
+        run: |
+          if [ -f /opt/intel/oneapi/setvars.sh ]; then
+            set +u
+            . /opt/intel/oneapi/setvars.sh >/dev/null
+            set -u
+            echo "PATH=$PATH" >> "$GITHUB_ENV"
+            echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
+            if [ -n "${I_MPI_ROOT:-}" ]; then
+              echo "I_MPI_ROOT=$I_MPI_ROOT" >> "$GITHUB_ENV"
+            fi
+          fi
+          echo "CC=icx" >> "$GITHUB_ENV"
+          echo "CXX=icpx" >> "$GITHUB_ENV"
+          echo "FC=ifx" >> "$GITHUB_ENV"
+          echo "F77=ifx" >> "$GITHUB_ENV"
       - uses: r-hub/actions/run-check@v1
         env:
           RED2_ENABLE_MPI: ${{ matrix.mpi == 'mpi' && 'yes' || 'no' }}
@@ -130,6 +147,27 @@ jobs:
         run: |
           brew update
           brew install hdf5 || brew upgrade hdf5
+          echo "PKG_CONFIG_PATH=$(brew --prefix hdf5)/lib/pkgconfig:${PKG_CONFIG_PATH}" >> "$GITHUB_ENV"
+          echo "PATH=$(brew --prefix hdf5)/bin:${PATH}" >> "$GITHUB_ENV"
+      - name: Install Intel oneAPI on Windows
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          winget install --id Intel.OneAPI.BaseToolkit -e --accept-package-agreements --accept-source-agreements
+          winget install --id Intel.OneAPI.HPCToolkit -e --accept-package-agreements --accept-source-agreements
+          $compilerRoot = Get-ChildItem 'C:\Program Files (x86)\Intel\oneAPI\compiler' -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          $compilerBin = Join-Path $compilerRoot.FullName 'bin'
+          Add-Content -Path $env:GITHUB_PATH -Value $compilerBin
+          $mpiRoot = Get-ChildItem 'C:\Program Files (x86)\Intel\oneAPI\mpi' -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+          if ($mpiRoot) {
+            Add-Content -Path $env:GITHUB_ENV -Value "I_MPI_ROOT=$($mpiRoot.FullName)"
+            Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $mpiRoot.FullName 'bin')
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value 'CC=icx'
+          Add-Content -Path $env:GITHUB_ENV -Value 'CXX=icpx'
+          Add-Content -Path $env:GITHUB_ENV -Value 'FC=ifx'
+          Add-Content -Path $env:GITHUB_ENV -Value 'F77=ifx'
+          Add-Content -Path $env:GITHUB_ENV -Value 'RED2_WINDOWS_TOOLCHAIN=intel'
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
