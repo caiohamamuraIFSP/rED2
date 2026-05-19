@@ -87,6 +87,9 @@ jobs:
             elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
               pm=dnf
               command -v dnf >/dev/null 2>&1 || pm=yum
+              "$pm" install -y ca-certificates curl gnupg
+              update-ca-trust extract 2>/dev/null || true
+              rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
               mkdir -p /etc/yum.repos.d
               cat > /etc/yum.repos.d/oneAPI.repo <<'EOF'
           [oneAPI]
@@ -94,7 +97,7 @@ jobs:
           baseurl=https://yum.repos.intel.com/oneapi
           enabled=1
           gpgcheck=1
-          repo_gpgcheck=1
+          repo_gpgcheck=0
           gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
           EOF
               "$pm" install -y \
