@@ -7,9 +7,12 @@
 # It is unlikely that you need to modify this file manually.
 
 name: R-hub
-run-name: "${{ github.event.inputs.id }}: ${{ github.event.inputs.name || format('Manually run by {0}', github.triggering_actor) }}"
+run-name: "${{ github.event.inputs.id || github.ref_name }}: ${{ github.event.inputs.name || format('Run by {0}', github.triggering_actor) }}"
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       config:
@@ -23,6 +26,9 @@ on:
         description: 'Unique ID. You can leave this empty now.'
         type: string
 
+permissions:
+  contents: write
+
 jobs:
 
   setup:
@@ -35,7 +41,7 @@ jobs:
     # NO NEED TO CHECKOUT HERE
     - uses: r-hub/actions/setup@v1
       with:
-        config: ${{ github.event.inputs.config }}
+        config: ${{ github.event.inputs.config || 'linux,windows,macos' }}
       id: rhub-setup
 
   linux-containers:
@@ -67,30 +73,7 @@ jobs:
       - name: Smoke-test ED2 binary
         shell: Rscript {0}
         run: |
-          options(repos = c(CRAN = "https://cloud.r-project.org"))
-          if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak")
-
-          lib <- file.path(tempdir(), "red2-rhub-smoke-lib")
-          unlink(lib, recursive = TRUE, force = TRUE)
-          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
-
-          pak::pak("local::.", lib = lib, ask = FALSE, upgrade = FALSE)
-
-          exe_name <- if (.Platform$OS.type == "windows") "edmain.exe" else "edmain"
-          exe <- system.file("bin", exe_name, package = "rED2", lib.loc = lib)
-          cat("ED2 binary:", exe, "\n")
-          stopifnot(nzchar(exe), file.exists(exe))
-
-          out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
-          text <- paste(out, collapse = "\n")
-          cat(text, sep = "\n")
-
-          if (!grepl("ED2IN", text, fixed = TRUE)) {
-            stop("edmain did not reach the expected ED2 runtime error for missing ED2IN.", call. = FALSE)
-          }
-          if (grepl("libifcoremd|libifportmd|cannot open shared object|DLL|not found", text, ignore.case = TRUE)) {
-            stop("edmain failed before ED2 runtime because a runtime library was missing.", call. = FALSE)
-          }
+          source("tools/smoke_test_binary_package.R")
 
   other-platforms:
     needs: setup
@@ -123,27 +106,48 @@ jobs:
       - name: Smoke-test ED2 binary
         shell: Rscript {0}
         run: |
-          options(repos = c(CRAN = "https://cloud.r-project.org"))
-          if (!requireNamespace("pak", quietly = TRUE)) install.packages("pak")
+          source("tools/smoke_test_binary_package.R")
 
-          lib <- file.path(tempdir(), "red2-rhub-smoke-lib")
-          unlink(lib, recursive = TRUE, force = TRUE)
-          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+  release-binaries:
+    needs: [linux-containers, other-platforms]
+    if: ${{ always() && github.ref_type == 'tag' && !contains(join(needs.*.result, ','), 'failure') && !contains(join(needs.*.result, ','), 'cancelled') }}
+    runs-on: ubuntu-latest
 
-          pak::pak("local::.", lib = lib, ask = FALSE, upgrade = FALSE)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: rhub-artifacts
+      - name: Prepare binary packages
+        shell: Rscript {0}
+        run: |
+          dir.create("release-assets", showWarnings = FALSE)
 
-          exe_name <- if (.Platform$OS.type == "windows") "edmain.exe" else "edmain"
-          exe <- system.file("bin", exe_name, package = "rED2", lib.loc = lib)
-          cat("ED2 binary:", exe, "\n")
-          stopifnot(nzchar(exe), file.exists(exe))
+          archives <- list.files(
+            "rhub-artifacts",
+            pattern = "^rED2_.*[.](zip|tgz|tar[.]gz)$",
+            full.names = TRUE,
+            recursive = TRUE
+          )
+          version <- sub("^refs/tags/v?", "", Sys.getenv("GITHUB_REF"))
+          source_archive <- sprintf("rED2_%s.tar.gz", version)
+          archives <- archives[basename(archives) != source_archive]
 
-          out <- suppressWarnings(system2(exe, stdout = TRUE, stderr = TRUE))
-          text <- paste(out, collapse = "\n")
-          cat(text, sep = "\n")
-
-          if (!grepl("ED2IN", text, fixed = TRUE)) {
-            stop("edmain did not reach the expected ED2 runtime error for missing ED2IN.", call. = FALSE)
+          if (!length(archives)) {
+            stop("No binary package archives found in Rhub artifacts.", call. = FALSE)
           }
-          if (grepl("libifcoremd|libifportmd|cannot open shared object|DLL|not found", text, ignore.case = TRUE)) {
-            stop("edmain failed before ED2 runtime because a runtime library was missing.", call. = FALSE)
+
+          for (archive in archives) {
+            rel <- sub("^rhub-artifacts[/\\\\]", "", archive)
+            artifact <- strsplit(rel, "[/\\\\]")[[1]][[1]]
+            label <- gsub("[^A-Za-z0-9._-]+", "-", artifact)
+            dest <- file.path("release-assets", paste0(label, "-", basename(archive)))
+            file.copy(archive, dest, overwrite = TRUE)
+            cat("Prepared release asset:", dest, "\n")
           }
+      - name: Upload binary packages to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes ""
+          gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber
