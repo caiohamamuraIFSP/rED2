@@ -52,6 +52,12 @@ if (use_mpi) {
   if (!nzchar(launcher)) {
     stop("RED2_ENABLE_MPI=yes, but no MPI launcher was found in PATH.", call. = FALSE)
   }
+  if (.Platform$OS.type == "windows") {
+    Sys.setenv(
+      I_MPI_FABRICS = Sys.getenv("I_MPI_FABRICS", "shm"),
+      I_MPI_OFI_PROVIDER = Sys.getenv("I_MPI_OFI_PROVIDER", "shm")
+    )
+  }
   cat("MPI launcher:", launcher, "\n")
   out <- suppressWarnings(system2(launcher, c("-n", "2", exe), stdout = TRUE, stderr = TRUE))
 } else {
