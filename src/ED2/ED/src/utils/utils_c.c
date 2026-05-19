@@ -146,7 +146,7 @@ int rams_c_open(char *filename,char *faccess)
 
 /*********************************************************/
 
-int rams_c_close()
+int rams_c_close(void)
 {
   extern FILE *ramsfile;
   int istat;
@@ -549,8 +549,8 @@ int findmycpu_ ()
 }
 #else
 #include <utmpx.h>
-int sched_getcpu();
-int findmycpu_ ()
+int sched_getcpu(void);
+int findmycpu_(void)
 {
     int cpu;
     cpu = sched_getcpu();
