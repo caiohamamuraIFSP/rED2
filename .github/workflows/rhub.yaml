@@ -67,6 +67,23 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Install Intel oneAPI on Linux
+        if: ${{ matrix.config.label == 'intel' }}
+        run: |
+          if ! command -v icx >/dev/null 2>&1 || ! command -v ifx >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y ca-certificates gpg-agent wget
+            wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB \
+              | gpg --dearmor \
+              | tee /usr/share/keyrings/oneapi-archive-keyring.gpg >/dev/null
+            echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" \
+              > /etc/apt/sources.list.d/oneAPI.list
+            apt-get update
+            apt-get install -y --no-install-recommends \
+              intel-oneapi-compiler-dpcpp-cpp \
+              intel-oneapi-compiler-fortran \
+              intel-oneapi-mpi-devel
+          fi
       - name: Configure Intel compilers
         if: ${{ matrix.config.label == 'intel' }}
         run: |
