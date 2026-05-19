@@ -2,9 +2,9 @@
 #define RED2_ED2_COMPAT_PREFIX_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #if defined(_WIN32)
-#include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 
