@@ -125,6 +125,11 @@ jobs:
         with:
           token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
+      - name: Install HDF5 on m1-san
+        if: ${{ startsWith(matrix.config.label, 'm1-san') }}
+        run: |
+          brew update
+          brew install hdf5 || brew upgrade hdf5
       - uses: r-hub/actions/setup-deps@v1
         with:
           job-config: ${{ matrix.config.job-config }}
