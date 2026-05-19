@@ -227,6 +227,13 @@ AS_IF([test "x$os_name" = "xWindows" -a "x$RED2_WINDOWS_TOOLCHAIN" = "xintel"],
   [: ${CC:=`"${R_BIN}" CMD config CC`}
    : ${CFLAGS:=`"${R_BIN}" CMD config CFLAGS`}
    : ${FCFLAGS:=`"${R_BIN}" CMD config FCFLAGS`}
+   # Strip sanitizer flags inherited from R.  On CRAN ASAN/UBSAN check
+   # machines, R CMD config CFLAGS includes -fsanitize=address,undefined.
+   # The ED2 C source is compiled with those flags (embedding ASAN runtime
+   # calls in object files), but the Fortran linker (gfortran) does not
+   # pass -fsanitize to the link step, producing unresolved ASAN/UBSAN
+   # symbols.  Stripping them from CFLAGS is the simplest fix.
+   CFLAGS=`printf '%s' "$CFLAGS" | sed 's/-fsanitize=[[^ ]]*//g'`
    : ${AR:=ar}
    : ${ARFLAGS:=rcs}
    AROUT=""])

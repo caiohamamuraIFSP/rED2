@@ -52,9 +52,11 @@ if (use_mpi) {
   if (!nzchar(launcher)) {
     stop("RED2_ENABLE_MPI=yes, but no MPI launcher was found in PATH.", call. = FALSE)
   }
+  Sys.setenv(
+    I_MPI_FABRICS = Sys.getenv("I_MPI_FABRICS", "shm")
+  )
   if (.Platform$OS.type == "windows") {
     Sys.setenv(
-      I_MPI_FABRICS = Sys.getenv("I_MPI_FABRICS", "shm:tcp"),
       I_MPI_OFI_PROVIDER = Sys.getenv("I_MPI_OFI_PROVIDER", "tcp")
     )
   }
